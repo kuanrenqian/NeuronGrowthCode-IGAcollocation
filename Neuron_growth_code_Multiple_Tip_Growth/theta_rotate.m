@@ -4,12 +4,10 @@ ttt = zeros(lenu,lenv);
 for l=1:size_Max
     max_x = Max_x(l);
     max_y = Max_y(l);
-%     old_ori = initial_angle(l)+rotate(l);
-    old_ori = angle(l);
-    if(old_ori>0)
-        old_ori = pi-old_ori;
+    if(angle(l)>0)
+        angle(l) = pi-angle(l);
     else
-        old_ori = -(pi+old_ori);
+        angle(l) = -(pi+angle(l));
     end
     for i = 1:lenu
         for j = 1:lenv
@@ -21,7 +19,7 @@ for l=1:size_Max
                 if isnan(ttt(i,j))
                     ttt(i,j) = 1;
                 end
-                ttt(i,j) = ttt(i,j)+old_ori;
+                ttt(i,j) = ttt(i,j)+angle(l);
                 if(ttt(i,j)>pi)
                     ttt(i,j) = ttt(i,j) - 2*pi;
                 elseif (ttt(i,j)<-pi)
@@ -31,27 +29,12 @@ for l=1:size_Max
             end
         end
     end
-%     val = 3;
-%     for i = max_y-5:max_y+5
-%         for j = max_x-5:max_x+5
-%             x_dist = i-max_x;
-%             y_dist = j-max_y;
-%             r = sqrt(x_dist^2+y_dist^2);
-%             if (r<2)
-%                 ttt(i,j) = val;
-%                 val = -val;
-%             end
-%         end
-%     end
+    
     for i = max_y-1:max_y+1
         for j = max_x-1:max_x+1
             ttt(i,j) = 1;
-%             val = -val;
         end
     end
-    
     theta = theta+ttt;    
 end
-
-
 theta(abs(theta)>0) = 1;

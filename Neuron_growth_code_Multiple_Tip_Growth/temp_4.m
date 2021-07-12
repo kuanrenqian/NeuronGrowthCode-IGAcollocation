@@ -155,7 +155,7 @@ param = GetParam(phi_actin,dtime);
 actin_start = rot_iter_invl*2;
 
 % rotate = 0;
-% rotate_intv = 0;
+rotate_intv = 0;
 rot_map = zeros(lenu,lenv);
 
 % transient iterations
@@ -176,9 +176,11 @@ for iter=1:1:end_iter
         E(abs(nnT)==0) = 0;
         
         subplot(3,2,3);
-        tip = sum_filter(reshape(NuNv*phi,lenu,lenv));
-        imagesc(reshape(E,lenu,lenv)+tip);
-%         title(sprintf('E with rotation = %.3f',rotate));
+        phi_plot = reshape(NuNv*phi,lenu,lenv);
+        tip = sum_filter(phi_plot);
+%         imagesc(reshape(E,lenu,lenv)+tip);
+        imagesc(reshape(E,lenu,lenv)+phi_plot);
+        title(sprintf('E overlay with phi'));
         axis square;
         colorbar;
     end
@@ -347,7 +349,6 @@ for iter=1:1:end_iter
         axis square;
         colorbar;
 
-
 %         subplot(3,2,5);
 %         imagesc(param.H);
 %         title(sprintf('H at iteration = %.2d',iter));
@@ -368,47 +369,47 @@ for iter=1:1:end_iter
         end
         
         expd_state = 0;
-%         if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
-%                 max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
-%                 max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
-%                 max(max(phi_plot(:,end-BC_tol:end))) > 0.5))
-% %          if(iter~=1 && (max(max(tempr_plot(1:BC_tol,:))) > 0.4 || ...
-% %                 max(max(tempr_plot(:,1:BC_tol))) > 0.4 || ...
-% %                 max(max(tempr_plot(end-BC_tol:end,:))) > 0.4 || ...
-% %                 max(max(tempr_plot(:,end-BC_tol:end))) > 0.4))
+        if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
+                max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
+                max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
+                max(max(phi_plot(:,end-BC_tol:end))) > 0.5))
+%          if(iter~=1 && (max(max(tempr_plot(1:BC_tol,:))) > 0.4 || ...
+%                 max(max(tempr_plot(:,1:BC_tol))) > 0.4 || ...
+%                 max(max(tempr_plot(end-BC_tol:end,:))) > 0.4 || ...
+%                 max(max(tempr_plot(:,end-BC_tol:end))) > 0.4))
+            
+            disp('********************************************************************');
+            disp('Expanding Domain...');
+
+            Nx = Nx+10;
+            Ny = Ny+10;
+
+%             if (iter > rot_iter_start)
+%                 Max_y = Max_y+5;
+%                 Max_x = Max_x+5;
+%             end
 %             
-%             disp('********************************************************************');
-%             disp('Expanding Domain...');
-% 
-%             Nx = Nx+10;
-%             Ny = Ny+10;
-% 
-% %             if (iter > rot_iter_start)
-% %                 Max_y = Max_y+5;
-% %                 Max_x = Max_x+5;
-% %             end
-% %             
-%             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
-%             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
-% 
-%             lenu = length(knotvectorU)-2*(p-1);
-%             lenv = length(knotvectorV)-2*(p-1);
-% 
-%             oldNuNv = NuNv;
-%             [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] ...
-%                 = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
-%             lap = N2uNv + NuN2v;
-% 
-%             sz = length(lap);
-%             
-%             [phi,theta,theta_ori,param,tempr,phi_initial,theta_initial,~,tempr_initial,bcid,rot_map] ...
-%                 = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,rotate,param,tempr_new,rot_map,oldNuNv,NuNv);
-%             phiK = phi;
-% 
-%             expd_state = 1;
-%             toc
-%             disp('********************************************************************');
-%         end
+            knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
+            knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
+
+            lenu = length(knotvectorU)-2*(p-1);
+            lenv = length(knotvectorV)-2*(p-1);
+
+            oldNuNv = NuNv;
+            [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] ...
+                = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
+            lap = N2uNv + NuN2v;
+
+            sz = length(lap);
+            
+            [phi,theta,theta_ori,param,tempr,phi_initial,theta_initial,~,tempr_initial,bcid,rot_map] ...
+                = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,rotate,param,tempr_new,rot_map,oldNuNv,NuNv);
+            phiK = phi;
+
+            expd_state = 1;
+            toc
+            disp('********************************************************************');
+        end
     end
     
     if (iter < rot_iter_start)
@@ -424,20 +425,11 @@ for iter=1:1:end_iter
             X_dist = Max_x-lenu/2+1e-6;
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist);
-%             for i = 1:size_Max
-%                     max_x = Max_x(i);
-%                     max_y = Max_y(i);
-%                     % calculating initial neurite angle
-%                     x_dist = max_x-lenu/2+1e-6;
-%                     y_dist = max_y-lenv/2+1e-6;
-%                     % messed up x,y naming
-%                     initial_angle(i) = atan2(x_dist,y_dist);
-%             end
         end
         
         if(mod(iter,rot_iter_invl)==0||expd_state==1)
             tip = sum_filter(reshape(NuNv*phiK,lenu,lenv));
-            [Max_y,Max_x] = find(tip>0.87); % 0.9 is a arbitrary threshould
+            [Max_y,Max_x] = find(tip>0.87); % arbitrary threshould
             size_Max = length(Max_x); % how many maxes
             
             X_dist = Max_x-lenu/2+1e-6;
@@ -450,10 +442,10 @@ for iter=1:1:end_iter
         else
             if (mod(iter,rot_iter_invl) == 0)
                 rotate = rand(1,size_Max)*2-1;
+                % calculating rotate angle increment for each iiteration
+                rotate_intv = rotate/rot_iter_invl;        
             end
         end
-        % calculating rotate angle increment for each iiteration
-        rotate_intv = rotate/rot_iter_invl;        
         
         % x,y naming issue
         angle = initial_angle + rotate;
