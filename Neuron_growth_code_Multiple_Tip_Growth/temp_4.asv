@@ -26,8 +26,8 @@ tol = 1e-4;
 % B-spline curve order (U,V direction)
 p = 3;
 q = 3;
-Nx = 60;
-Ny = 60;
+Nx = 50;
+Ny = 50;
 
 knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
 knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
@@ -115,7 +115,7 @@ theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
 
 % plotting initial phi
-set(gcf,'position',[100,100,700,900]);
+% set(gcf,'position',[100,100,700,900]);
 colormap parula;
 
 % ID for boundary location (suppress 4 edges)
@@ -154,8 +154,8 @@ phi_actin = reshape(NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
 actin_start = rot_iter_invl*2;
 
-rotate = 0;
-rotate_intv = 0;
+% rotate = 0;
+% rotate_intv = 0;
 rot_map = zeros(lenu,lenv);
 
 % transient iterations
@@ -415,70 +415,43 @@ for iter=1:1:end_iter
         Rot = 0;
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    end
-%     if (iter>=rot_iter_start||expd_state==1)
-    if (iter>=rot_iter_start)        
-%         if(mod(iter,rot_iter_invl)==0||expd_state==1)
-        if(mod(iter,rot_iter_invl)==0||expd_state==1)
-            expd_state=0;
-
+    else
+        if(iter == rot_iter_start)
             tip = sum_filter(reshape(NuNv*phiK,lenu,lenv));
             [Max_y,Max_x] = find(tip>0.85); % 0.9 is a arbitrary threshould
             size_Max = length(Max_x); % how many maxes
             
-            for i = 1:size_Max
-%                 if(iter == rot_iter_invl)
-                    max_x = Max_x(i);
-                    max_y = Max_y(i);
-                    % calculating initial neurite angle
-                    x_dist = max_x-lenu/2+1e-6;
-                    y_dist = max_y-lenv/2+1e-6;
-                    % messed up x,y naming
-                    initial_angle(i) = atan2(x_dist,y_dist);
-                    
-%                 end
-            end
-            
-%             check rotate angle to see if it is reasonable (within initial
-%             range)
-            if(iter<rot_iter_start+rot_iter_invl) 
-%                 % use initial angle to grow out (some conversion needed for
-%                 % rotate variable)
-%                 if(initial_angle>0)
-%                     rotate = pi-initial_angle;
-%                 else
-%                     rotate = -(pi+initial_angle);
-%                 end
-                rotate = initial_angle;
-            else
-                for i = 1:size_Max
-                    Rot = rand*2-1;
-                    rotate(i) = Rot;
-                % check if Rot is in range, or calculate Rot again
-%                 pass = 0;
-%                     while (pass==0)
-%                         if (initial_angle>0)
-%                             if ( (rotate+Rot)>initial_up_range || ...
-%                                     (rotate+Rot)<initial_down_range )
-%                                         Rot = rand*pi-pi/2;
-%                                         pass = 1;
-%                             end
-%                         elseif (initial_angle<0)
-%                             if ( (rotate+Rot)<initial_up_range || ...
-%                                     (rotate+Rot)>initial_down_range )
-%                                         Rot = rand*pi-pi/2;
-%                                         pass = 1;
-%                             end
-%                         else
-%                             pass = 0;
-%                         end
-%                     end
-                end
-            end
-            
-            % calculating rotate angle increment for each iiteration
-            rotate_intv = Rot/rot_iter_invl;        
+            X_dist = Max_x-lenu/2+1e-6;
+            Y_dist = Max_y-lenu/2+1e-6;
+            initial_angle = atan2(X_dist,Y_dist);
+%             for i = 1:size_Max
+%                     max_x = Max_x(i);
+%                     max_y = Max_y(i);
+%                     % calculating initial neurite angle
+%                     x_dist = max_x-lenu/2+1e-6;
+%                     y_dist = max_y-lenv/2+1e-6;
+%                     % messed up x,y naming
+%                     initial_angle(i) = atan2(x_dist,y_dist);
+%             end
         end
+        
+        if(mod(iter,rot_iter_invl)==0||expd_state==1)
+            tip = sum_filter(reshape(NuNv*phiK,lenu,lenv));
+            [Max_y,Max_x] = find(tip>0.85); % 0.9 is a arbitrary threshould
+            size_Max = length(Max_x); % how many maxes
+            
+            X_dist = Max_x-lenu/2+1e-6;
+            Y_dist = Max_y-lenu/2+1e-6;
+            initial_angle = atan2(X_dist,Y_dist);
+        end
+            if(iter<rot_iter_start+rot_iter_invl)
+                rotate = 0;
+            else
+                rotate = rand(1,size_Max)*2-1;
+            end
+            % calculating rotate angle increment for each iiteration
+            rotate_intv = rotate/rot_iter_invl;        
+    end
         
         % x,y naming issue
         theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,rotate,size_Max);

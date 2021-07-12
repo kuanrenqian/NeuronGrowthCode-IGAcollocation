@@ -1,11 +1,11 @@
-function [theta] = theta_rotate(lenu,lenv,Max_x,Max_y,angle,size_Max)
+function [theta] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle, rotate,size_Max)
 theta = zeros(lenu,lenv);
 ttt = zeros(lenu,lenv);
 for l=1:size_Max
     max_x = Max_x(l);
     max_y = Max_y(l);
 %     old_ori = initial_angle(l)+rotate(l);
-    old_ori = angle(l);
+    old_ori = initial_angle(l);
     if(old_ori>0)
         old_ori = pi-old_ori;
     else
