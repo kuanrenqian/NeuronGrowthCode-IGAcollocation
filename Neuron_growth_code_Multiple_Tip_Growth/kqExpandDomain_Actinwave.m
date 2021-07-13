@@ -1,5 +1,5 @@
-function [phi_out,theta_out,theta_ori_out,param,tempr_out,phi_initial_out,theta_initial_out,space_holder,tempr_initial_out,bcid,rot_map_out] = ...
-    kqExpandDomain_Actinwave(sz,phi,theta,max_x,max_y,rotate,param,tempr,rot_map,oldNuNv,newNuNv)
+function [phi_out,theta_out,theta_ori_out,param,tempr_out,phi_initial_out,theta_initial_out,tempr_initial_out,bcid] = ...
+    kqExpandDomain_Actinwave(sz,phi,theta,max_x,max_y,param,tempr,oldNuNv,newNuNv)
 
 space_holder = 1;
 
@@ -31,7 +31,7 @@ actin_out = zeros(outSz);
 hem_out = zeros(outSz);
 HState_out = zeros(outSz);
 tempr_out =zeros(outSz);
-rot_map_out = zeros(outSz);
+% rot_map_out = zeros(outSz);
 
 i_off = floor(outSz/2-M/2);
 j_off = floor(outSz/2-M/2);
@@ -47,7 +47,7 @@ actin_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = actin(3:M-2,3:M-2);
 hem_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = hem(3:M-2,3:M-2);
 HState_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = HState(3:M-2,3:M-2);
 tempr_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = tempr(3:M-2,3:M-2);
-rot_map_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = rot_map(3:M-2,3:M-2);
+% rot_map_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = rot_map(3:M-2,3:M-2);
 
 
 phi_initial_out = reshape(phi_out,outSz,outSz);

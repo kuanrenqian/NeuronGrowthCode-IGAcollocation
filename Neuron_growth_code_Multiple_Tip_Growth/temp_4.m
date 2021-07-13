@@ -78,23 +78,6 @@ phi = NuNv\phi;
 % initializing theta and temperature
 theta=NuNv\reshape(rand(lenu,lenv),lenu*lenv,1);
 theta_ori = zeros(lenu,lenv);
-for i = 1:lenu
-    for j = 1:lenv
-        x=i-lenu/2;
-        y=j-lenv/2;
-        theta_ori(i,j) = (atan2(y,x));
-        if isnan(theta_ori(i,j))
-            theta_ori(i,j) = 1;
-        end
-        theta_ori(i,j) = theta_ori(i,j)+0;
-        if(theta_ori(i,j)>pi)
-            theta_ori(i,j) = theta_ori(i,j) - 2*pi;
-        elseif (theta_ori(i,j)<-pi)
-            theta_ori(i,j) = theta_ori(i,j) + 2*pi;
-        end
-    end
-end
-
 tempr = zeros([lenu*lenv,1]);
 
 phi_initial = reshape(phi,lenu,lenv);
@@ -143,13 +126,8 @@ conct = sparse(conct);
 phi_ones = sparse(zeros([lenu*lenv,1]));
 bcid = sparse(bcid);
 
-dist= zeros(lenu*lenv,1);
-flag_tip= zeros(lenu*lenv,1);
-max_dist = 0;
-max_index = 0;
-
-rot_iter_start = 500;
-rot_iter_invl = 500;
+rot_iter_start = 1000;
+rot_iter_invl = 1000;
 phi_actin = reshape(NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
 actin_start = rot_iter_invl*2;
@@ -157,7 +135,8 @@ actin_start = rot_iter_invl*2;
 % rotate = 0;
 rotate_intv = 0;
 rot_map = zeros(lenu,lenv);
-
+Max_x = 0;
+Max_y = 0;
 % transient iterations
 for iter=1:1:end_iter
     tic
@@ -178,11 +157,17 @@ for iter=1:1:end_iter
         subplot(3,2,3);
         phi_plot = reshape(NuNv*phi,lenu,lenv);
         tip = sum_filter(phi_plot);
-%         imagesc(reshape(E,lenu,lenv)+tip);
         imagesc(reshape(E,lenu,lenv)+phi_plot);
         title(sprintf('E overlay with phi'));
         axis square;
         colorbar;
+        
+        subplot(3,2,5);
+        imagesc(tip);
+        title(sprintf('theta at iteration = %.2d',iter));
+        axis square;
+        colorbar;
+        
     end
     
     %% Phi (Implicit Nonlinear NR method)
@@ -364,7 +349,7 @@ for iter=1:1:end_iter
         % plot current iteration
         drawnow;
 
-        if(mod(iter,100) == 0)
+        if(mod(iter,50) == 0)
             saveas(gcf,sprintf('NeuronGrowth_ex1_%.2d.png',iter));
         end
         
@@ -377,18 +362,16 @@ for iter=1:1:end_iter
 %                 max(max(tempr_plot(:,1:BC_tol))) > 0.4 || ...
 %                 max(max(tempr_plot(end-BC_tol:end,:))) > 0.4 || ...
 %                 max(max(tempr_plot(:,end-BC_tol:end))) > 0.4))
-            
+%            
             disp('********************************************************************');
             disp('Expanding Domain...');
 
             Nx = Nx+10;
             Ny = Ny+10;
 
-%             if (iter > rot_iter_start)
-%                 Max_y = Max_y+5;
-%                 Max_x = Max_x+5;
-%             end
-%             
+            Max_x = Max_x + 5;
+            Max_y = Max_y + 5;       
+            
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
 
@@ -403,7 +386,7 @@ for iter=1:1:end_iter
             sz = length(lap);
             
             [phi,theta,theta_ori,param,tempr,phi_initial,theta_initial,~,tempr_initial,bcid,rot_map] ...
-                = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,rotate,param,tempr_new,rot_map,oldNuNv,NuNv);
+                = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,param,tempr_new,rot_map,oldNuNv,NuNv);
             phiK = phi;
 
             expd_state = 1;
@@ -412,26 +395,31 @@ for iter=1:1:end_iter
         end
     end
     
+    tip_threshold = 0.85;
     if (iter < rot_iter_start)
         Rot = 0;
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    else
-        if(iter == rot_iter_start)
-            tip = sum_filter(reshape(NuNv*phiK,lenu,lenv));
-            [Max_y,Max_x] = find(tip>0.85); % 0.9 is a arbitrary threshould
-            size_Max = length(Max_x); % how many maxes
+    end
+    if (iter >= rot_iter_start)
+        if ((mod(iter,rot_iter_invl)==0)||(expd_state==1))
+            expd_state = 0;
             
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
-            initial_angle = atan2(X_dist,Y_dist);
-        end
-        
-        if(mod(iter,rot_iter_invl)==0||expd_state==1)
-            tip = sum_filter(reshape(NuNv*phiK,lenu,lenv));
-            [Max_y,Max_x] = find(tip>0.87); % arbitrary threshould
-            size_Max = length(Max_x); % how many maxes
-            
+            if (iter < 2000)
+                tip = sum_filter(phi_plot,0);
+                % in case no tip is found, lower threshold value
+                while(size_Max<4)
+                    [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
+                    size_Max = length(Max_x); % how many maxes
+                    tip_threshold = tip_threshold - 0.001;
+                end
+                tip_threshold = 0.85;
+            else
+                tip = sum_filter(phi_plot,1);
+                regionalMaxima = imregionalmax(full(tip));
+                [Max_y,Max_x] = find(regionalMaxima); % arbitrary threshould
+                size_Max = length(Max_x); % how many maxes
+            end
             X_dist = Max_x-lenu/2+1e-6;
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist);
@@ -441,25 +429,16 @@ for iter=1:1:end_iter
             rotate = 0;
         else
             if (mod(iter,rot_iter_invl) == 0)
-                rotate = rand(1,size_Max)*2-1;
-                % calculating rotate angle increment for each iiteration
-                rotate_intv = rotate/rot_iter_invl;        
+                Rot = rand(1,size_Max)*2-1;
+                rotate_intv = Rot/rot_iter_invl;        
             end
         end
         
         % x,y naming issue
         angle = initial_angle + rotate;
         theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,angle,size_Max);
-
-        subplot(3,2,5);
-        imagesc(theta_ori);
-        title(sprintf('theta at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-
         rotate = rotate + rotate_intv;
-        fprintf('Rot:%.2d, Rotate:%.4d, max_x:%.2d, max_y:%.2d\n', Rot, rotate, max_x, max_y);
-
+        
     end
     toc
 end

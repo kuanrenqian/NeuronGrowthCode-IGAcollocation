@@ -25,7 +25,7 @@ for l=1:size_Max
                 elseif (ttt(i,j)<-pi)
                     ttt(i,j) = ttt(i,j) + 2*pi;
                 end
-                ttt(abs(ttt)<2.5) = 0;
+                ttt(abs(ttt)<2.8) = 0;
             end
         end
     end
