@@ -15,8 +15,8 @@ close all
 time0 = clock();
 format long;
 %-- Simulation cell parameters:
-Nx = 200;
-Ny = 200;
+Nx = 100;
+Ny = 100;
 NxNy = Nx*Ny;
 dx = 1;
 dy = 1;
@@ -150,13 +150,13 @@ for istep =1:nstep
         % for every rot_iter_invl iterations, change max location
         %         if ( iter>rot_iter_start  && mod(iter,rot_iter_invl)==0)
         if ( istep>rot_iter_start+rot_iter_invl)
-            tip = sum_filter(full(phi_plot),1);
+            tip = sum_filter(phi,1);
             
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
+            X_dist = Max_x-Nx/2+1e-6;
+            Y_dist = Max_y-Ny/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist).';
         end
         
