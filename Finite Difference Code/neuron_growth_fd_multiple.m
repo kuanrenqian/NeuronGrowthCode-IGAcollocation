@@ -15,8 +15,8 @@ close all
 time0 = clock();
 format long;
 %-- Simulation cell parameters:
-Nx = 100;
-Ny = 100;
+Nx = 140;
+Ny = 140;
 NxNy = Nx*Ny;
 dx = 1;
 dy = 1;
@@ -29,7 +29,7 @@ dtime = 1e-4;
 mu = 1.0;
 kappa = 1.8;
 delta = 0.5;
-aniso = 2.0;
+aniso = 6.0;
 abar = 0.45;
 epsilonb = (abar/(1+delta));
 tau = epsilonb;

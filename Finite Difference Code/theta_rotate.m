@@ -30,8 +30,8 @@ for l=1:size_Max
         end
     end
     
-    for i = max_y-1:max_y+1
-        for j = max_x-1:max_x+1
+    for i = max_y-3:max_y+3
+        for j = max_x-3:max_x+3
             ttt(i,j) = 1;
         end
     end
