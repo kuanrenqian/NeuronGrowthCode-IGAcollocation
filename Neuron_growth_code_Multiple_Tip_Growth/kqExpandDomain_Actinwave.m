@@ -1,8 +1,6 @@
 function [phi_out,theta_out,theta_ori_out,param,tempr_out,phi_initial_out,theta_initial_out,tempr_initial_out,bcid] = ...
     kqExpandDomain_Actinwave(sz,phi,theta,max_x,max_y,param,tempr,oldNuNv,newNuNv)
 
-space_holder = 1;
-
 len = length(phi);
 M = sqrt(len);
 

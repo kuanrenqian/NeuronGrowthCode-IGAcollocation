@@ -26,13 +26,15 @@ phi_sum_max = max(max(phi_sum));
 phi_sum = phi_sum./phi_sum_max;
 phi_sum(isnan(phi_sum))=0;
 
-if state == 1
-    for i = 1:Nx
-        for j = 1:Ny
-            r = sqrt((i-Nx/2)^2+(j-Ny/2)^2);
-            if r<18
-                phi_sum(i,j) = 0;
-            end
-        end
-    end
-end
+phi_sum(phi_sum<0.7)=0;
+
+% if state == 1
+%     for i = 1:Nx
+%         for j = 1:Ny
+%             r = sqrt((i-Nx/2)^2+(j-Ny/2)^2);
+%             if r<18
+%                 phi_sum(i,j) = 0;
+%             end
+%         end
+%     end
+% end

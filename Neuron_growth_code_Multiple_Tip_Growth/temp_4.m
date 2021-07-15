@@ -127,16 +127,19 @@ phi_ones = sparse(zeros([lenu*lenv,1]));
 bcid = sparse(bcid);
 
 rot_iter_start = 1000;
-rot_iter_invl = 1000;
+rot_iter_invl = 500;
 phi_actin = reshape(NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
 actin_start = rot_iter_invl*2;
 
-% rotate = 0;
-rotate_intv = 0;
+Rot = zeros(1,20);
+rotate = zeros(1,20);
+angle = zeros(1,20);
+rotate_intv = zeros(1,20);
 rot_map = zeros(lenu,lenv);
-Max_x = 0;
-Max_y = 0;
+size_Max_initial = 0;
+size_Max = 0;
+
 % transient iterations
 for iter=1:1:end_iter
     tic
@@ -156,13 +159,13 @@ for iter=1:1:end_iter
         
         subplot(3,2,3);
         phi_plot = reshape(NuNv*phi,lenu,lenv);
-        tip = sum_filter(phi_plot);
         imagesc(reshape(E,lenu,lenv)+phi_plot);
         title(sprintf('E overlay with phi'));
         axis square;
         colorbar;
         
         subplot(3,2,5);
+        tip = sum_filter(phi_plot,0);
         imagesc(tip);
         title(sprintf('theta at iteration = %.2d',iter));
         axis square;
@@ -358,11 +361,7 @@ for iter=1:1:end_iter
                 max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
                 max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
                 max(max(phi_plot(:,end-BC_tol:end))) > 0.5))
-%          if(iter~=1 && (max(max(tempr_plot(1:BC_tol,:))) > 0.4 || ...
-%                 max(max(tempr_plot(:,1:BC_tol))) > 0.4 || ...
-%                 max(max(tempr_plot(end-BC_tol:end,:))) > 0.4 || ...
-%                 max(max(tempr_plot(:,end-BC_tol:end))) > 0.4))
-%            
+           
             disp('********************************************************************');
             disp('Expanding Domain...');
 
@@ -370,8 +369,8 @@ for iter=1:1:end_iter
             Ny = Ny+10;
 
             Max_x = Max_x + 5;
-            Max_y = Max_y + 5;       
-            
+            Max_y = Max_y + 5;            
+                
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
 
@@ -384,9 +383,9 @@ for iter=1:1:end_iter
             lap = N2uNv + NuN2v;
 
             sz = length(lap);
-            
-            [phi,theta,theta_ori,param,tempr,phi_initial,theta_initial,~,tempr_initial,bcid,rot_map] ...
-                = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,param,tempr_new,rot_map,oldNuNv,NuNv);
+
+            [phi,theta,theta_ori,param,tempr,phi_initial,theta_initial,tempr_initial,bcid] ...
+                = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,param,tempr_new,oldNuNv,NuNv);
             phiK = phi;
 
             expd_state = 1;
@@ -395,49 +394,54 @@ for iter=1:1:end_iter
         end
     end
     
-    tip_threshold = 0.85;
     if (iter < rot_iter_start)
-        Rot = 0;
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    end
-    if (iter >= rot_iter_start)
-        if ((mod(iter,rot_iter_invl)==0)||(expd_state==1))
-            expd_state = 0;
-            
-            if (iter < 2000)
-                tip = sum_filter(phi_plot,0);
-                % in case no tip is found, lower threshold value
-                while(size_Max<4)
-                    [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
-                    size_Max = length(Max_x); % how many maxes
-                    tip_threshold = tip_threshold - 0.001;
-                end
-                tip_threshold = 0.85;
-            else
-                tip = sum_filter(phi_plot,1);
-                regionalMaxima = imregionalmax(full(tip));
-                [Max_y,Max_x] = find(regionalMaxima); % arbitrary threshould
-                size_Max = length(Max_x); % how many maxes
-            end
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
-            initial_angle = atan2(X_dist,Y_dist);
-        end
+    else
         
-        if(iter<rot_iter_start+rot_iter_invl)
-            rotate = 0;
-        else
+        % neurite rotate value and get rid of center state
+        if(iter>(rot_iter_start+rot_iter_invl) )
             if (mod(iter,rot_iter_invl) == 0)
                 Rot = rand(1,size_Max)*2-1;
                 rotate_intv = Rot/rot_iter_invl;        
             end
         end
+
+        % initialize max points
+        if ( iter==rot_iter_start )
+            tip = sum_filter(full(phi_plot),0);
+            tip_threshold = 1;
+            while(size_Max<4)
+                [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
+                size_Max = length(Max_x); % how many maxes
+                tip_threshold = tip_threshold - 0.001;
+            end
+            fprintf('starting size max is : %2d', size_Max);
+            X_dist = Max_x-lenu/2+1e-6;
+            Y_dist = Max_y-lenu/2+1e-6;
+            initial_angle = atan2(X_dist,Y_dist).';
+        end
         
-        % x,y naming issue
-        angle = initial_angle + rotate;
-        theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,angle,size_Max);
-        rotate = rotate + rotate_intv;
+        % for every rot_iter_invl iterations, change max location
+%         if ( iter>rot_iter_start  && mod(iter,rot_iter_invl)==0)
+        if ( iter>rot_iter_start+rot_iter_invl)
+            tip = sum_filter(full(phi_plot),1);
+
+            regionalMaxima = imregionalmax(full(tip));
+            [Max_y,Max_x] = find(regionalMaxima);
+            size_Max = length(Max_x);
+            X_dist = Max_x-lenu/2+1e-6;
+            Y_dist = Max_y-lenu/2+1e-6;
+            initial_angle = atan2(X_dist,Y_dist).';
+        end
+
+        [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+        
+        subplot(3,2,6);
+        imagesc(rot_map);
+        title(sprintf('rot_map at iteration = %.2d',iter));
+        axis square;
+        colorbar;
         
     end
     toc
