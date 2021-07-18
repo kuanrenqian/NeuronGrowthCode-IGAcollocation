@@ -200,29 +200,68 @@ for iter=1:1:end_iter
         N1N1pk = N1uN1v*phiK;   
         LAPpk = lap*phiK;
 
-        terma2 = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
-            +2*NNa.*NN1a.*NN1pk;
-        termadx = N1Naap.*NN1pk+NNaap.*N1N1pk;
-        termady = NN1aap.*N1Npk+NNaap.*N1N1pk;     
-
-%         termNL = -NNpk.^3+(1.5-E).*NNpk.^2+(E-0.5).*NNpk;
-        termNL = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
+        %% multi threaded
+        parfor i = 1:7
+            if i == 1
+                % term a2
+                out{i}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
+                    +2*NNa.*NN1a.*NN1pk;
+            elseif i == 2
+                % termadx 
+                out{i} = N1Naap.*NN1pk+NNaap.*N1N1pk;
+            elseif i == 3
+                %termady 
+                out{i} = NN1aap.*N1Npk+NNaap.*N1N1pk;     
+            elseif i == 4
+                % termNL 
+                out{i} = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
+            elseif i == 5
+                 if dt_t==0 % these terms only needs to be calculated once
+                    % terma2_deriv 
+                    out{i} =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
+                        + 2*NNa.*NN1a.*NuN1v;
+                 end
+            elseif i == 6
+                 if dt_t==0 % these terms only needs to be calculated once
+                    % termadxdy_deriv 
+                    out{i} = N1Naap.*(-NuN1v+N1uNv);
+                end
+            else
+                    % termNL_deriv 
+                    out{i} = (-3*NNpk.^2+2*(1-C1).*NNpk+C1).*NuNv;
+            end
+        end
         
-        terma2_deriv =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
-            + 2*NNa.*NN1a.*NuN1v;
-        termadx_deriv = N1Naap.*NuN1v+NNaap.*N1uN1v;
-        termady_deriv = NN1aap.*N1uNv+NNaap.*N1uN1v;       
-
-%         termNL_deriv = -3*NNpk.^2+2*(1.5-E).*NNpk+(E-0.5);
-%         termNL_deriv = termNL_deriv.*NuNv;
-        termNL_deriv = -3*NNpk.^2+2*(1-C1).*NNpk+C1;
-        termNL_deriv = termNL_deriv.*NuNv;
-        
-        R = M_phi/tau*(terma2-termadx+termady+termNL);
+        R = M_phi/tau*(out{1}-out{2}+out{3}+out{4});
         R = R*dtime-NNpk+(NuNv*phi);
-        dR = M_phi/tau*(terma2_deriv-termadx_deriv+termady_deriv+termNL_deriv);
+        dR = M_phi/tau*(out{5}+out{6}+out{7});
         dR = dR*dtime-NuNv;
+        
+        %% single threaded
+%         terma2 = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
+%             +2*NNa.*NN1a.*NN1pk;
+%         termadx = N1Naap.*NN1pk+NNaap.*N1N1pk;
+%         termady = NN1aap.*N1Npk+NNaap.*N1N1pk;     
+% 
+%         termNL = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
+% 
+% %         terma2_deriv =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
+% %             + 2*NNa.*NN1a.*NuN1v;
+%         if dt_t==0 % these terms only needs to be calculated once
+%             terma2_deriv =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
+%                 + 2*NNa.*NN1a.*NuN1v;
+%             termadxdy_deriv = N1Naap.*(-NuN1v+N1uNv);
+%         end
+% 
+%         termNL_deriv = -3*NNpk.^2+2*(1-C1).*NNpk+C1;
+%         termNL_deriv = termNL_deriv.*NuNv;
+%         
+%         R = M_phi/tau*(terma2-termadx+termady+termNL);
+%         R = R*dtime-NNpk+(NuNv*phi);
+%         dR = M_phi/tau*(terma2_deriv+termadxdy_deriv+termNL_deriv);
+%         dR = dR*dtime-NuNv;
 
+        %%
         % check residual and update guess
         R = R - dR*phi_initial;
         [dR, R] = StiffMatSetupBCID(dR, R,bcid,phi_initial);
