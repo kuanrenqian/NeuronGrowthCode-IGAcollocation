@@ -15,10 +15,12 @@ disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
 disp('********************************************************************');
 
+diary 'fast_test'
+
 %% Variable Initialization
 % time stepping variables
 dtime = 5e-3;
-end_iter = 20000;
+end_iter = 200000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -61,16 +63,16 @@ disp('Base variable - initialization done!');
 
 %% Iterating variable initialization
 % initializing phi and concentration based on neuron seed position
-[phi, conc, conct] = initialize_neurite_growth(seed_radius, lenu, lenv);
+[phi, conc] = initialize_neurite_growth(seed_radius, lenu, lenv);
 
 % reshpae phi and concentration for calculation
 phi = reshape(phi,lenu*lenv,1);
 
 %% Constructing coef matrix
 order_deriv = 2;    % highest order of derivatives to calculate
-sprs = 1;   % sparse or not (for kqCollocationDers)
-[NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points,dersU] ...
-    = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
+[NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,size_collpts] ...
+    = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
+
 lap = N2uNv + NuN2v;
 
 phi = NuNv\phi;
@@ -98,7 +100,7 @@ theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
 
 % plotting initial phi
-% set(gcf,'position',[100,100,700,900]);
+set(gcf,'position',[100,100,700,900]);
 colormap parula;
 
 % ID for boundary location (suppress 4 edges)
@@ -118,14 +120,14 @@ disp('********************************************************************');
 %% Transient iteration computation
 disp('Starting Neuron Growth Model transient iterations...');
 
-phi = sparse(phi);
-conc = sparse(conc);
+% phi = sparse(phi);
+% conc = sparse(conc);
 theta = sparse(theta);
 tempr = sparse(tempr);
-conct = sparse(conct);
 phi_ones = sparse(zeros([lenu*lenv,1]));
 bcid = sparse(bcid);
 
+% these variables may not be used, a lot of parameters changes
 rot_iter_start = 1000;
 rot_iter_invl = 500;
 phi_actin = reshape(NuNv*phi,lenu,lenv);
@@ -140,11 +142,21 @@ rot_map = zeros(lenu,lenv);
 size_Max_initial = 0;
 size_Max = 0;
 
+windowSize=5;  % Decide as per your requirements
+kernel=ones(windowSize)/windowSize^2;
+
+Max_x = 0;
+Max_y = 0;
+
+tic
 % transient iterations
 for iter=1:1:end_iter
-    tic
-    fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
 
+    if(mod(iter,50) == 0)
+        fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
+        toc
+        tic
+    end
     % calculating a and a*a' (aap) in the equation using theta and phi
     [a, ~, aap,pdy,pdx] = kqGetEpsilonAndAap(epsilonb,delta,phi,theta,NuNv,NuN1v,N1uNv);
     a = reshape(a,lenu*lenv,1);
@@ -153,7 +165,7 @@ for iter=1:1:end_iter
     teq = 1;
     E = (alph./pix).*atan(gamma.*(teq-(NuNv*tempr)));
     
-    if(iter>=rot_iter_start)
+    if(iter>=1000)
         nnT = reshape(theta_ori,lenu*lenv,1);
         E(abs(nnT)==0) = 0;
         
@@ -165,8 +177,9 @@ for iter=1:1:end_iter
         colorbar;
         
         subplot(3,2,5);
-        tip = sum_filter(phi_plot,0);
-        imagesc(tip);
+        tip = sum_filter(phi_plot,0);     
+        imagesc(tip); hold on;
+        plot(Max_x,Max_y,'o','MarkerEdgeColor','c');
         title(sprintf('theta at iteration = %.2d',iter));
         axis square;
         colorbar;
@@ -192,6 +205,7 @@ for iter=1:1:end_iter
     N1Naap = N1uNv*aap;
     NN1aap = NuN1v*aap;
 
+    out = cell(7);
     dt_t = 0;
     while max(abs(R)) >= tol        
         NNpk = NuNv*phiK;
@@ -199,8 +213,8 @@ for iter=1:1:end_iter
         NN1pk = NuN1v*phiK;   
         N1N1pk = N1uN1v*phiK;   
         LAPpk = lap*phiK;
-
-        %% multi threaded
+        
+        % multi threaded NR iterations
         parfor i = 1:7
             if i == 1
                 % term a2
@@ -227,8 +241,8 @@ for iter=1:1:end_iter
                     out{i} = N1Naap.*(-NuN1v+N1uNv);
                 end
             else
-                    % termNL_deriv 
-                    out{i} = (-3*NNpk.^2+2*(1-C1).*NNpk+C1).*NuNv;
+                % termNL_deriv 
+                out{i} = (-3*NNpk.^2+2*(1-C1).*NNpk+C1).*NuNv;
             end
         end
         
@@ -236,32 +250,7 @@ for iter=1:1:end_iter
         R = R*dtime-NNpk+(NuNv*phi);
         dR = M_phi/tau*(out{5}+out{6}+out{7});
         dR = dR*dtime-NuNv;
-        
-        %% single threaded
-%         terma2 = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
-%             +2*NNa.*NN1a.*NN1pk;
-%         termadx = N1Naap.*NN1pk+NNaap.*N1N1pk;
-%         termady = NN1aap.*N1Npk+NNaap.*N1N1pk;     
-% 
-%         termNL = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
-% 
-% %         terma2_deriv =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
-% %             + 2*NNa.*NN1a.*NuN1v;
-%         if dt_t==0 % these terms only needs to be calculated once
-%             terma2_deriv =  2*NNa.*N1Na.*N1uNv+NNa.^2.*lap ...
-%                 + 2*NNa.*NN1a.*NuN1v;
-%             termadxdy_deriv = N1Naap.*(-NuN1v+N1uNv);
-%         end
-% 
-%         termNL_deriv = -3*NNpk.^2+2*(1-C1).*NNpk+C1;
-%         termNL_deriv = termNL_deriv.*NuNv;
-%         
-%         R = M_phi/tau*(terma2-termadx+termady+termNL);
-%         R = R*dtime-NNpk+(NuNv*phi);
-%         dR = M_phi/tau*(terma2_deriv+termadxdy_deriv+termNL_deriv);
-%         dR = dR*dtime-NuNv;
 
-        %%
         % check residual and update guess
         R = R - dR*phi_initial;
         [dR, R] = StiffMatSetupBCID(dR, R,bcid,phi_initial);
@@ -283,7 +272,7 @@ for iter=1:1:end_iter
     temprRHS = temprRHS - temprLHS*tempr_initial;
     [temprLHS, temprRHS] = StiffMatSetupBCID(temprLHS, temprRHS,bcid,tempr_initial);
     tempr_new = temprLHS\temprRHS;
-    
+
     %% Theta (Implicit method)
     lap_theta = lap*theta;
     P2 = 10*NNpk.^3-15*NNpk.^4+6*NNpk.^5;
@@ -354,7 +343,7 @@ for iter=1:1:end_iter
     tempr = tempr_new;
 
     %% Plotting figures
-    if(mod(iter,10) == 0 || iter == 1)
+    if(mod(iter,50) == 0 || iter == 1)
         phi_plot = reshape(NuNv*phiK,lenu,lenv);
         subplot(3,2,1);
         imagesc(phi_plot);
@@ -391,7 +380,7 @@ for iter=1:1:end_iter
         % plot current iteration
         drawnow;
 
-        if(mod(iter,50) == 0)
+        if(mod(iter,200) == 0)
             saveas(gcf,sprintf('NeuronGrowth_ex1_%.2d.png',iter));
         end
         
@@ -417,8 +406,8 @@ for iter=1:1:end_iter
             lenv = length(knotvectorV)-2*(p-1);
 
             oldNuNv = NuNv;
-            [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] ...
-                = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
+            [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,size_collpts] ...
+                = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
             lap = N2uNv + NuN2v;
 
             sz = length(lap);
@@ -433,24 +422,30 @@ for iter=1:1:end_iter
         end
     end
     
+    if(mod(iter,1000)==0)
+        save('phi_on_cp','phiK');
+        save('theta_on_cp','theta_new');
+        save('tempr_on_cp','tempr_new');
+    end
+    
+    % DIFFERENT STAGES
+    % Stage 1: 1~1000 iterations, random theta
+    % Stage 2: 1000~7000 iterations, energy activation based on sum_filter
+    % and local max
+    % Stage 3: >7000 iterations, energy activation based on dist variable
     if (iter < rot_iter_start)
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
     else
-        
-        % neurite rotate value and get rid of center state
-        if(iter>(rot_iter_start+rot_iter_invl) )
-            if (mod(iter,rot_iter_invl) == 0)
-                Rot = rand(1,size_Max)*2-1;
-                rotate_intv = Rot/rot_iter_invl;        
-            end
-        end
-
         % initialize max points
-        if ( iter==rot_iter_start )
+        if ( iter==1000 )
             tip = sum_filter(full(phi_plot),0);
             tip_threshold = 1;
-            while(size_Max<4)
+            size_Max = 0;
+            while(size_Max<3) 
+                % if encoutering error on ttt(i,j) index out of bounds,
+                % run code again (rand initial did not grow out enough
+                % neurite tips at 1000 iterations)
                 [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
                 size_Max = length(Max_x); % how many maxes
                 tip_threshold = tip_threshold - 0.001;
@@ -459,31 +454,70 @@ for iter=1:1:end_iter
             X_dist = Max_x-lenu/2+1e-6;
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist).';
+            
+            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+
         end
         
         % for every rot_iter_invl iterations, change max location
-%         if ( iter>rot_iter_start  && mod(iter,rot_iter_invl)==0)
-        if ( iter>rot_iter_start+rot_iter_invl)
+        if ( iter>1000 && iter < 7000)
             tip = sum_filter(full(phi_plot),1);
-
+            
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
+            
             X_dist = Max_x-lenu/2+1e-6;
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist).';
+            
+            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+
         end
 
-        [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
-        
-        subplot(3,2,6);
-        imagesc(rot_map);
-        title(sprintf('rot_map at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-        
+        if ( iter>=7000)
+            if ( mod(iter,500) == 0 || expd_state == 1) % need this to update more frequently
+                expd_state = 0;
+                phi_full = full(reshape(NuNv*phiK,lenu,lenv));
+                dist= zeros(lenu,lenv);
+                for i = 1:lenu
+                    for j = 1:lenv
+                        if(phi_full(i,j)>0.85)
+                            dist(i,j) = sqrt((i-lenu/2)^2+(j-lenv/2)^2);
+                        end
+                    end
+                end
+
+                dist = reshape(dist,lenu*lenv,1);
+                [max_dist,max_index] = max(dist);
+                max_x = ceil(max_index/lenu);
+                max_y = rem(max_index,lenu);
+
+
+                if(iter == 7000)
+                    x_dist = max_x-lenu/2;
+                    y_dist = lenv/2-max_y;
+                    initial_angle = atan2(x_dist,y_dist);
+                    rotate = initial_angle;
+                end
+            end
+            
+            if(iter<7000) 
+                rotate = initial_angle;
+                theta_ori = theta_rotate_1(lenu,lenv,max_x,max_y,rotate);
+            else
+                Rot = rand*pi/2-pi/4;
+                rotate_intv = Rot/500;
+                theta_ori = theta_rotate_1(lenu,lenv,max_x,max_y,rotate);
+                rotate = rotate + rotate_intv;
+            end
+            subplot(3,2,6);
+            imagesc(theta_ori);
+            title(sprintf('rot_map at iteration = %.2d',iter));
+            axis square;
+            colorbar;
+        end
     end
-    toc
 end
 
 disp('All simulations complete!\n');

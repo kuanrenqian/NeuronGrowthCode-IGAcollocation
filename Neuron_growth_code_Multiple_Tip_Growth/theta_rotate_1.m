@@ -23,15 +23,16 @@ for i = 1:lenu
     end
 end
 
-val = 3;
-for i = max_y-5:max_y+5
-    for j = max_x-5:max_x+5
-        x_dist = i-max_x;
-        y_dist = j-max_y;
-        r = sqrt(x_dist^2+y_dist^2);
-        if (r<2)
-            theta(i,j) = val;
-            val = -val;
-        end
+for i = max_y-1:max_y+1
+    for j = max_x-1:max_x+1
+%         x_dist = i-max_x;
+%         y_dist = j-max_y;
+%         r = sqrt(x_dist^2+y_dist^2);
+%         if (r<=1)
+            theta(i,j) = 3;
+%         end
     end
 end
+
+theta(abs(theta)<=2.8) = 0;
+theta(abs(theta)>2.8) = 1;
