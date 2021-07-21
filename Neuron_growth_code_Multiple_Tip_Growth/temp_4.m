@@ -169,7 +169,8 @@ for iter=1:1:end_iter
         [ax,ay] = find(theta_ori==1);
         E_ind = (ay-1)*lenv+ax; % OR find(theta_ori==1);
         E = sparse(ax,ay,E(E_ind), lenu,lenv);
-        
+        E = reshape(E, lenu*lenv,1);
+
         subplot(3,2,3);
         phi_plot = reshape(NuNv*phi,lenu,lenv);
         imagesc(reshape(E,lenu,lenv)+phi_plot);
