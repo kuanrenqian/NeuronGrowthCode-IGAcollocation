@@ -166,8 +166,9 @@ for iter=1:1:end_iter
     E = (alph./pix).*atan(gamma.*(teq-(NuNv*tempr)));
     
     if(iter>=1000)
-        nnT = reshape(theta_ori,lenu*lenv,1);
-        E(abs(nnT)==0) = 0;
+        [ax,ay] = find(theta_ori==1);
+        E_ind = (ay-1)*lenv+ax; % OR find(theta_ori==1);
+        E = sparse(ax,ay,E(E_ind), lenu,lenv);
         
         subplot(3,2,3);
         phi_plot = reshape(NuNv*phi,lenu,lenv);
