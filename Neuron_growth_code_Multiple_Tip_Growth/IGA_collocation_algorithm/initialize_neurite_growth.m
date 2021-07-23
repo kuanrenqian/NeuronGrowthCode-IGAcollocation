@@ -30,4 +30,5 @@ end
 
 %% Creating sparse matrix
 phi = sparse(ind_i,ind_j,phi_val,lenu,lenv);
-conc = phi*0.5; % conc just happens to be 0.5
+phi = reshape(phi,lenu*lenv,1); % reshpae phi for calculation
+conc = phi*0.5; % conc is 0.5 where phi is 1

@@ -1,6 +1,6 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 06/02/2021
+% 07/23/2021
 
 %% CleanUp
 close all;
@@ -15,12 +15,13 @@ disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
 disp('********************************************************************');
 
-diary 'fast_test'
+% log
+diary 'log_Neuron_Growth'
 
 %% Variable Initialization
 % time stepping variables
 dtime = 5e-3;
-end_iter = 200000;
+end_iter = 20000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -30,10 +31,8 @@ p = 3;
 q = 3;
 Nx = 50;
 Ny = 50;
-
 knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
 knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
-
 % setting lenu lenv this way for easier access to ghost nodes later on
 lenu = length(knotvectorU)-2*(p-1);
 lenv = length(knotvectorV)-2*(p-1);
@@ -41,7 +40,7 @@ lenv = length(knotvectorV)-2*(p-1);
 % neuron growth variables
 aniso = 6;
 kappa= 4;
-alph = 0.9; % changing name to alph cause alpha is a function
+alph = 0.9;
 pix=4.0*atan(1.0);
 gamma = 15.0;
 tau = 0.3;
@@ -52,36 +51,33 @@ s_coeff = 0.002;
 delta = 0.1;
 epsilonb = 0.04;
 
-% Seed size
+% Seed size (radius of initial neuron seed)
 seed_radius = 10;
 
 % Expanding domain parameters
-BC_tol = 10;
-expd_coef = 1.2;
+BC_tol = 10; % number of BC layers to check for expanding
 
-disp('Base variable - initialization done!');
+rng('shuffle');
 
-%% Iterating variable initialization
-% initializing phi and concentration based on neuron seed position
-[phi, conc] = initialize_neurite_growth(seed_radius, lenu, lenv);
+disp('Constant variable initialization done!');
 
-% reshpae phi and concentration for calculation
-phi = reshape(phi,lenu*lenv,1);
-
-%% Constructing coef matrix
+%% 2D variables initialization
+% Constructing coef matrix
 order_deriv = 2;    % highest order of derivatives to calculate
 [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,size_collpts] ...
     = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
-
 lap = N2uNv + NuN2v;
 
+% initializing phi and concentration based on neuron seed position
+[phi, conc] = initialize_neurite_growth(seed_radius, lenu, lenv);
 phi = NuNv\phi;
 
 % initializing theta and temperature
 theta=NuNv\reshape(rand(lenu,lenv),lenu*lenv,1);
 theta_ori = zeros(lenu,lenv);
-tempr = zeros([lenu*lenv,1]);
+tempr = zeros(lenu*lenv,1);
 
+% These initial variables will be used for dirichlet boundary condition
 phi_initial = reshape(phi,lenu,lenv);
 conc_initial = reshape(conc,lenu,lenv);
 theta_initial = reshape(theta,lenu,lenv);
@@ -98,10 +94,6 @@ phi_initial = reshape(phi_initial,lenu*lenv,1);
 conc_initial = reshape(conc_initial,lenu*lenv,1);
 theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
-
-% plotting initial phi
-set(gcf,'position',[100,100,700,900]);
-colormap parula;
 
 % ID for boundary location (suppress 4 edges)
 % id = 1 means there is bc
@@ -120,33 +112,37 @@ disp('********************************************************************');
 %% Transient iteration computation
 disp('Starting Neuron Growth Model transient iterations...');
 
-% phi = sparse(phi);
-% conc = sparse(conc);
-theta = sparse(theta);
-tempr = sparse(tempr);
-phi_ones = sparse(zeros([lenu*lenv,1]));
-bcid = sparse(bcid);
-
-% these variables may not be used, a lot of parameters changes
-rot_iter_start = 1000;
+% Multi-stage iteration variable setup
+stage1_end = 1000;
+stage2_end = 7000;
 rot_iter_invl = 500;
+rotate = zeros(1,20);
+angle = zeros(1,20);
+size_Max = 0;
+Max_x = 0;
+Max_y = 0;
 phi_actin = reshape(NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
 actin_start = rot_iter_invl*2;
 
-Rot = zeros(1,20);
-rotate = zeros(1,20);
-angle = zeros(1,20);
-rotate_intv = zeros(1,20);
-rot_map = zeros(lenu,lenv);
-size_Max_initial = 0;
-size_Max = 0;
+% save initial variable
+save('./data/phi_on_cp_initial','phi');
+save('./data/theta_on_cp_initial','theta');
+save('./data/tempr_on_cp_initial','tempr');
 
-windowSize=5;  % Decide as per your requirements
-kernel=ones(windowSize)/windowSize^2;
+% frequency to save variables/figures during simulation
+var_save_invl = 1000;
+png_save_invl = 100;
 
-Max_x = 0;
-Max_y = 0;
+% converting non-sparse variable to sparse before simulation
+theta = sparse(theta);
+tempr = sparse(tempr);
+bcid = sparse(bcid);
+
+% Set up figure for plotting
+figure(1);
+% set(gcf,'position',[100,100,700,900]);
+colormap parula;
 
 tic
 % transient iterations
@@ -157,35 +153,15 @@ for iter=1:1:end_iter
         toc
         tic
     end
-    % calculating a and a*a' (aap) in the equation using theta and phi
-    [a, ~, aap,pdy,pdx] = kqGetEpsilonAndAap(epsilonb,delta,phi,theta,NuNv,NuN1v,N1uNv);
-    a = reshape(a,lenu*lenv,1);
-    aap = reshape(aap,lenu*lenv,1);
-
-    teq = 1;
-    E = (alph./pix).*atan(gamma.*(teq-(NuNv*tempr)));
     
-    if(iter>=1000)
-        [ax,ay] = find(theta_ori==1);
-        E_ind = (ay-1)*lenv+ax; % OR find(theta_ori==1);
-        E = sparse(ax,ay,E(E_ind), lenu,lenv);
-        E = reshape(E, lenu*lenv,1);
+    % calculating a and a*a' (aap) in the equation using theta and phi
+    [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,theta,NuNv,NuN1v,N1uNv);
 
-        subplot(3,2,3);
-        phi_plot = reshape(NuNv*phi,lenu,lenv);
-        imagesc(reshape(E,lenu,lenv)+phi_plot);
-        title(sprintf('E overlay with phi'));
-        axis square;
-        colorbar;
-        
-        subplot(3,2,5);
-        tip = sum_filter(phi_plot,0);     
-        imagesc(tip); hold on;
-        plot(Max_x,Max_y,'o','MarkerEdgeColor','c');
-        title(sprintf('theta at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-        
+    E = (alph./pix).*atan(gamma.*(1-(NuNv*tempr)));
+    
+    if(iter>=stage1_end)
+        nnT = reshape(theta_ori,lenu*lenv,1);
+        E(abs(nnT)==0) = 0;
     end
     
     %% Phi (Implicit Nonlinear NR method)
@@ -198,7 +174,7 @@ for iter=1:1:end_iter
     mag_grad_theta = sparse(sqrt((N1uNv*theta).^2+(NuN1v*theta).^2)+1e-12);
     C1 = sparse(E-0.5+6.*s_coeff.*mag_grad_theta);
 
-    % NR method calculation
+    % calculate these variables in advance to save cost
     ind_check = 0;
     NNa = NuNv*a;
     N1Na = N1uNv*a;
@@ -207,8 +183,10 @@ for iter=1:1:end_iter
     N1Naap = N1uNv*aap;
     NN1aap = NuN1v*aap;
 
+    % out is for extracting variables from parfor
     out = cell(7);
     dt_t = 0;
+    
     while max(abs(R)) >= tol        
         NNpk = NuNv*phiK;
         N1Npk = N1uNv*phiK;
@@ -216,7 +194,7 @@ for iter=1:1:end_iter
         N1N1pk = N1uN1v*phiK;   
         LAPpk = lap*phiK;
         
-        % multi threaded NR iterations
+        %% multi threaded
         parfor i = 1:7
             if i == 1
                 % term a2
@@ -347,6 +325,9 @@ for iter=1:1:end_iter
     %% Plotting figures
     if(mod(iter,50) == 0 || iter == 1)
         phi_plot = reshape(NuNv*phiK,lenu,lenv);
+        theta_plot = reshape(NuNv*theta_new,lenu,lenv);
+        tempr_plot = reshape(NuNv*tempr_new,lenu,lenv);
+
         subplot(3,2,1);
         imagesc(phi_plot);
         title(sprintf('Phi at iteration = %.2d',iter));
@@ -354,13 +335,11 @@ for iter=1:1:end_iter
         colorbar;
 
         subplot(3,2,2);
-        theta_plot = reshape(NuNv*theta_new,lenu,lenv);
         imagesc(theta_plot);
         title(sprintf('theta_plot at iteration = %.2d',iter));
         axis square;
         colorbar;
 
-        tempr_plot = reshape(NuNv*tempr_new,lenu,lenv);
         subplot(3,2,4);
         imagesc(tempr_plot(2:end-1,2:end-1));
         title(sprintf('Tempr at iteration = %.2d',iter));
@@ -379,14 +358,34 @@ for iter=1:1:end_iter
 %         axis square;
 %         colorbar;
 
+        if(iter>stage1_end)
+            tip = sum_filter(full(phi_plot));     
+
+            subplot(3,2,3);
+            imagesc(reshape(E,lenu,lenv)+phi_plot);
+            title(sprintf('E overlay with phi'));
+            axis square;
+            colorbar;
+
+            subplot(3,2,5);
+            imagesc(tip); hold on;
+            plot(Max_x,Max_y,'o','MarkerEdgeColor','c');
+            title(sprintf('theta at iteration = %.2d',iter));
+            axis square;
+            colorbar;
+        end
+
         % plot current iteration
         drawnow;
 
-        if(mod(iter,200) == 0)
-            saveas(gcf,sprintf('NeuronGrowth_ex1_%.2d.png',iter));
+        if(mod(iter,png_save_invl) == 0)
+            try
+                saveas(gcf,sprintf('./data/NeuronGrowth_%.2d.png',iter));
+            catch
+                fprintf('png write error skipped.\n');
+            end
         end
         
-        expd_state = 0;
         if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
                 max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
                 max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
@@ -397,13 +396,10 @@ for iter=1:1:end_iter
 
             Nx = Nx+10;
             Ny = Ny+10;
-
             Max_x = Max_x + 5;
             Max_y = Max_y + 5;            
-                
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
-
             lenu = length(knotvectorU)-2*(p-1);
             lenv = length(knotvectorV)-2*(p-1);
 
@@ -418,36 +414,33 @@ for iter=1:1:end_iter
                 = kqExpandDomain_Actinwave(sz,phiK,theta_new,max_x,max_y,param,tempr_new,oldNuNv,NuNv);
             phiK = phi;
 
-            expd_state = 1;
             toc
             disp('********************************************************************');
         end
     end
     
-    if(mod(iter,1000)==0)
-        save('phi_on_cp','phiK');
-        save('theta_on_cp','theta_new');
-        save('tempr_on_cp','tempr_new');
+    if(mod(iter,var_save_invl)==0 || iter == 0)
+        try
+            save(sprintf('./data/phi_on_cp_%2d',iter),'phiK');
+            save(sprintf('./data/theta_on_cp_%2d',iter),'theta_new');
+            save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr_new');
+        catch
+            fprintf('Data write error skipped.\n');
+        end
     end
     
-    % DIFFERENT STAGES
-    % Stage 1: 1~1000 iterations, random theta
-    % Stage 2: 1000~7000 iterations, energy activation based on sum_filter
-    % and local max
-    % Stage 3: >7000 iterations, energy activation based on dist variable
-    if (iter < rot_iter_start)
+    % Stage 1 (Lamellpodium initialization)
+    if (iter < stage1_end)
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    else
-        % initialize max points
-        if ( iter==1000 )
-            tip = sum_filter(full(phi_plot),0);
+    elseif ( iter==stage1_end )
+            tip = sum_filter(full(phi_plot));
             tip_threshold = 1;
             size_Max = 0;
             while(size_Max<3) 
                 % if encoutering error on ttt(i,j) index out of bounds,
                 % run code again (rand initial did not grow out enough
-                % neurite tips at 1000 iterations)
+                % neurite tips at stage1_end iterations)
                 [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
                 size_Max = length(Max_x); % how many maxes
                 tip_threshold = tip_threshold - 0.001;
@@ -457,28 +450,21 @@ for iter=1:1:end_iter
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist).';
             
-            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+            theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
 
-        end
-        
-        % for every rot_iter_invl iterations, change max location
-        if ( iter>1000 && iter < 7000)
+    % Stage 2 (Dendrite outgrowth)
+    elseif ( iter>stage1_end && iter < stage2_end)
             tip = sum_filter(full(phi_plot),1);
-            
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
-            
             X_dist = Max_x-lenu/2+1e-6;
             Y_dist = Max_y-lenu/2+1e-6;
             initial_angle = atan2(X_dist,Y_dist).';
             
-            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
-
-        end
-
-        if ( iter>=7000)
-            if ( mod(iter,500) == 0 || expd_state == 1) % need this to update more frequently
+            theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+            
+    elseif ( iter>=stage2_end)
                 expd_state = 0;
                 phi_full = full(reshape(NuNv*phiK,lenu,lenv));
                 dist= zeros(lenu,lenv);
@@ -495,30 +481,57 @@ for iter=1:1:end_iter
                 max_x = ceil(max_index/lenu);
                 max_y = rem(max_index,lenu);
 
+                tip = sum_filter(phi_full);
+                stage3_tip = zeros(lenu,lenv);
+                for i = max_x-5:max_x+5
+                    for j = max_y-5:max_y+5
+                        stage3_tip(i,j) = tip(i,j);
+                    end
+                end
 
-                if(iter == 7000)
+                regionalMaxima = imregionalmax(stage3_tip);
+                [Max_y,Max_x] = find(regionalMaxima);
+                size_Max = length(Max_x);
+
+                if(iter == stage2_end)
                     x_dist = max_x-lenu/2;
                     y_dist = lenv/2-max_y;
-                    initial_angle = atan2(x_dist,y_dist);
-                    rotate = initial_angle;
+                    axon_angle = atan2(x_dist,y_dist);
+                    rotate = axon_angle;
+                    
+                    % rotation range for axon energy sector
+                    axon_angle_up = axon_angle+pi/2;
+                    if(axon_angle_up>pi)
+                        axon_angle_up = axon_angle_up - 2*pi;
+                    elseif (axon_angle_up<-pi)
+                        axon_angle_up = axon_angle_up + 2*pi;
+                    end          
+                    axon_angle_down = axon_angle-pi/2;
+                    if(axon_angle_down>pi)
+                        axon_angle_down = axon_angle_down - 2*pi;
+                    elseif (axon_angle_down<-pi)
+                        axon_angle_down = axon_angle_down + 2*pi;
+                    end        
+                    
                 end
-            end
             
-            if(iter<7000) 
-                rotate = initial_angle;
-                theta_ori = theta_rotate_1(lenu,lenv,max_x,max_y,rotate);
-            else
-                Rot = rand*pi/2-pi/4;
-                rotate_intv = Rot/500;
-                theta_ori = theta_rotate_1(lenu,lenv,max_x,max_y,rotate);
+                if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
+                    Rot = rand*pi/2-pi/4;
+                    while ( (Rot+rotate)<axon_angle_down ||...
+                            (Rot+rotate)>axon_angle_up)
+                        Rot = rand*pi/2-pi/4;
+                    end
+                    rotate_intv = Rot/rot_iter_invl;
+                end
+
+                theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,rotate,size_Max);
                 rotate = rotate + rotate_intv;
-            end
-            subplot(3,2,6);
-            imagesc(theta_ori);
-            title(sprintf('rot_map at iteration = %.2d',iter));
-            axis square;
-            colorbar;
-        end
+
+                subplot(3,2,6);
+                imagesc(theta_ori);
+                title(sprintf('rot_map at iteration = %.2d',iter));
+                axis square;
+                colorbar;
     end
 end
 

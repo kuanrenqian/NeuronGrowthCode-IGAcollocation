@@ -1,0 +1,135 @@
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+{Undefined function 'GetParam' for input arguments of type 'double'.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 128)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',128,0)">line 128</a>)
+param = GetParam(phi_actin,dtime);
+} 
+opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',128,0)
+main
+********************************************************************
+2D Phase-field Neuron Growth solver using IGA-Collocation
+********************************************************************
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+{Unrecognized function or variable 'lenu'.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('kqGetEpsilonAndAap', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\IGA_collocation_algorithm\kqGetEpsilonAndAap.m', 31)" style="font-weight:bold">kqGetEpsilonAndAap</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\IGA_collocation_algorithm\kqGetEpsilonAndAap.m',31,0)">line 31</a>)
+epsilon = reshape(epsilon,lenu*lenv,1);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 158)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',158,0)">line 158</a>)
+    [a, ~, aap,~,~] =
+    kqGetEpsilonAndAap(epsilonb,delta,phi,theta,NuNv,NuN1v,N1uNv);
+} 
+opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',158,0)
+opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\IGA_collocation_algorithm\kqGetEpsilonAndAap.m',31,0)
+lenu
+
+lenu =
+
+    53
+
+size(phi)
+
+ans =
+
+        2809           1
+
+2809^0.5
+
+ans =
+
+    53
+
+main
+********************************************************************
+2D Phase-field Neuron Growth solver using IGA-Collocation
+********************************************************************
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+Starting parallel pool (parpool) using the 'local' profile ...
+Connected to the parallel pool (number of workers: 4).
+Progress: 50/20000
+Elapsed time is 44.144988 seconds.
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('distcomp.remoteparfor/getCompleteIntervals', 'C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m', 407)" style="font-weight:bold">distcomp.remoteparfor/getCompleteIntervals</a>
+(<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m',407,0)">line 407</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function>distributed_execution', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 741)" style="font-weight:bold">parallel_function>distributed_execution</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',741,0)">line 741</a>)
+        [tags, out] = P.getCompleteIntervals(chunkSize);
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 573)" style="font-weight:bold">parallel_function</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',573,0)">line 573</a>)
+    R = distributed_execution(...
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 198)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',198,0)">line 198</a>)
+        parfor i = 1:7
+} 
+main
+********************************************************************
+2D Phase-field Neuron Growth solver using IGA-Collocation
+********************************************************************
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+Progress: 50/20000
+Elapsed time is 18.060091 seconds.
+Progress: 100/20000
+Elapsed time is 20.638504 seconds.
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('distcomp.remoteparfor/getCompleteIntervals', 'C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m', 379)" style="font-weight:bold">distcomp.remoteparfor/getCompleteIntervals</a>
+(<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m',379,0)">line 379</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function>distributed_execution', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 741)" style="font-weight:bold">parallel_function>distributed_execution</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',741,0)">line 741</a>)
+        [tags, out] = P.getCompleteIntervals(chunkSize);
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 573)" style="font-weight:bold">parallel_function</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',573,0)">line 573</a>)
+    R = distributed_execution(...
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 198)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',198,0)">line 198</a>)
+        parfor i = 1:7
+} 
+main
+********************************************************************
+2D Phase-field Neuron Growth solver using IGA-Collocation
+********************************************************************
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('distcomp.remoteparfor/getCompleteIntervals', 'C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m', 379)" style="font-weight:bold">distcomp.remoteparfor/getCompleteIntervals</a>
+(<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\parallel\distcomp\+distcomp\remoteparfor.m',379,0)">line 379</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function>distributed_execution', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 741)" style="font-weight:bold">parallel_function>distributed_execution</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',741,0)">line 741</a>)
+        [tags, out] = P.getCompleteIntervals(chunkSize);
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function', 'C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m', 573)" style="font-weight:bold">parallel_function</a> (<a href="matlab: opentoline('C:\Program Files\MATLAB\R2020b\toolbox\matlab\lang\parallel_function.m',573,0)">line 573</a>)
+    R = distributed_execution(...
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 198)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',198,0)">line 198</a>)
+        parfor i = 1:7
+} 
+main
+********************************************************************
+2D Phase-field Neuron Growth solver using IGA-Collocation
+********************************************************************
+Constant variable initialization done!
+Phi,conc,theta,tempr,bcid - initialization done!
+********************************************************************
+Starting Neuron Growth Model transient iterations...
+Progress: 50/20000
+Elapsed time is 16.260264 seconds.
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('StiffMatSetupBCID', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\IGA_collocation_algorithm\StiffMatSetupBCID.m', 5)" style="font-weight:bold">StiffMatSetupBCID</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\IGA_collocation_algorithm\StiffMatSetupBCID.m',5,0)">line 5</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m', 264)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\Kuanr\OneDrive\Desktop\Neuron_Growth_IGA_collocation\main.m',264,0)">line 264</a>)
+    [thetaLHS, thetaRHS] = StiffMatSetupBCID(thetaLHS,
+    thetaRHS,bcid,theta_initial);
+} 
