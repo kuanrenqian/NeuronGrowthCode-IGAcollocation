@@ -48,15 +48,15 @@ lenv = length(knotvectorV)-2*(q-1);
 %% Constructing coef matrix (concise function version)
 order_deriv = 2;
 sprs = 0;
-[NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
+[NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
 lap = N2uNv + NuN2v;
 
 set(gcf,'position',[100,100,800,300]);
-subplot(1,5,1);
-plot(Control_points(:,1),Control_points(:,2),'xb',coll_p(:,1),coll_p(:,2),'or');
-legend('Control points - knot vector','Collocation Points');
-title('Control Mesh and Collocation Points');
-disp('Done!');
+% subplot(1,5,1);
+% plot(Control_points(:,1),Control_points(:,2),'xb',coll_p(:,1),coll_p(:,2),'or');
+% legend('Control points - knot vector','Collocation Points');
+% title('Control Mesh and Collocation Points');
+% disp('Done!');
 
 %% Transient
 disp('Initializing temperature field...');

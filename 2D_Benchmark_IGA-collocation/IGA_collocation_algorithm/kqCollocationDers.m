@@ -1,4 +1,4 @@
-function [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs)
+function [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs)
 % kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv)
 % This function calculates all basis component for IGA-collocation 2D structured grid
 % kqCollocationDers() takes 2 knotvectors in u and v direction with corresponding

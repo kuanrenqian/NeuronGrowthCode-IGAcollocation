@@ -36,8 +36,8 @@ grid_size_X = [4,8,16,32,64];
 grid_size_Y = [4,8,16,32,64];
 L2norm = zeros([5,1]);
 
-grid_size_X = 10;
-grid_size_Y = 10;
+% grid_size_X = 10;
+% grid_size_Y = 10;
 
 syms X Y;
 % pool = parpool;
@@ -59,7 +59,7 @@ for n = 1:length(grid_size_X)
     %% Constructing coef matrix (concise function version)
     order_deriv = 2;
     sprs = 1;
-    [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv, sprs);
+    [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv, sprs);
     lap = N2uNv + NuN2v;
 
     %% Steady state computation

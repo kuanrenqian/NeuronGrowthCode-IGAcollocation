@@ -1,6 +1,5 @@
 function [phi_sum] = sum_filter(phi)
-% THis function takes phi as input and output a phi_sum variable that has
-% maximum value at tips (0~1)
+% THis function takes phi as input and output a phi_sum variable
 
 % get size of input
 [Nx,Ny] = size(phi);
@@ -21,8 +20,6 @@ end
 
 % scaling for better identification
 phi_sum = phi./phi_sum;
-phi_sum_max = max(max(phi_sum));
-phi_sum = phi_sum./phi_sum_max;
+phi_sum = phi_sum./0.05;
 phi_sum(isnan(phi_sum))=0;
-
-phi_sum(phi_sum<0.7)=0;
+phi_sum(phi_sum<0.75)=0;

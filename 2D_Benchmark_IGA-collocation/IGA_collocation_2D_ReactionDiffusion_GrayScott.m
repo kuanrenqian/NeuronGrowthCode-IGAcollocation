@@ -8,8 +8,8 @@ clear;
 clc;
 
 %% Including Path
-addpath('../IGA_collocation_algorithm');
-addpath('../github_repo');
+addpath('./IGA_collocation_algorithm');
+% addpath('../github_repo');
 
 disp('********************************************************************');
 disp('2D Reaction Diffusion Gray Scott solver using IGA-Collocation');
@@ -50,7 +50,7 @@ lenv = length(knotvectorV)-2*(p-1);
 %% Constructing coef matrix (concise function version)
 order_deriv = 2;
 sprs = 0;
-[NuNv,~,~,~,N2uNv,NuN2v,~,~,size_collpts,~] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
+[NuNv,~,~,~,N2uNv,NuN2v,~,~,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs);
 lap = N2uNv + NuN2v;
 
 %% Iterating variable initialization

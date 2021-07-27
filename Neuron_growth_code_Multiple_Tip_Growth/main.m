@@ -15,8 +15,8 @@ disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
 disp('********************************************************************');
 
-% log
 diary 'log_Neuron_Growth'
+rng('shuffle');
 
 %% Variable Initialization
 % time stepping variables
@@ -113,7 +113,7 @@ disp('********************************************************************');
 disp('Starting Neuron Growth Model transient iterations...');
 
 % Multi-stage iteration variable setup
-stage1_end = 1000;
+stage1_end = 1500;
 stage2_end = 7000;
 rot_iter_invl = 500;
 rotate = zeros(1,20);
@@ -398,6 +398,7 @@ for iter=1:1:end_iter
             Ny = Ny+10;
             Max_x = Max_x + 5;
             Max_y = Max_y + 5;            
+            
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
             lenu = length(knotvectorU)-2*(p-1);
@@ -433,28 +434,9 @@ for iter=1:1:end_iter
     if (iter < stage1_end)
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    elseif ( iter==stage1_end )
-            tip = sum_filter(full(phi_plot));
-            tip_threshold = 1;
-            size_Max = 0;
-            while(size_Max<3) 
-                % if encoutering error on ttt(i,j) index out of bounds,
-                % run code again (rand initial did not grow out enough
-                % neurite tips at stage1_end iterations)
-                [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
-                size_Max = length(Max_x); % how many maxes
-                tip_threshold = tip_threshold - 0.001;
-            end
-            fprintf('starting size max is : %2d', size_Max);
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
-            initial_angle = atan2(X_dist,Y_dist).';
-            
-            theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
-
     % Stage 2 (Dendrite outgrowth)
-    elseif ( iter>stage1_end && iter < stage2_end)
-            tip = sum_filter(full(phi_plot),1);
+    elseif ( iter>=stage1_end && iter < stage2_end)
+            tip = sum_filter(full(phi_plot));
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
@@ -465,7 +447,6 @@ for iter=1:1:end_iter
             theta_ori = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
             
     elseif ( iter>=stage2_end)
-                expd_state = 0;
                 phi_full = full(reshape(NuNv*phiK,lenu,lenv));
                 dist= zeros(lenu,lenv);
                 for i = 1:lenu
@@ -480,18 +461,6 @@ for iter=1:1:end_iter
                 [max_dist,max_index] = max(dist);
                 max_x = ceil(max_index/lenu);
                 max_y = rem(max_index,lenu);
-
-                tip = sum_filter(phi_full);
-                stage3_tip = zeros(lenu,lenv);
-                for i = max_x-5:max_x+5
-                    for j = max_y-5:max_y+5
-                        stage3_tip(i,j) = tip(i,j);
-                    end
-                end
-
-                regionalMaxima = imregionalmax(stage3_tip);
-                [Max_y,Max_x] = find(regionalMaxima);
-                size_Max = length(Max_x);
 
                 if(iter == stage2_end)
                     x_dist = max_x-lenu/2;
@@ -517,10 +486,6 @@ for iter=1:1:end_iter
             
                 if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
                     Rot = rand*pi/2-pi/4;
-                    while ( (Rot+rotate)<axon_angle_down ||...
-                            (Rot+rotate)>axon_angle_up)
-                        Rot = rand*pi/2-pi/4;
-                    end
                     rotate_intv = Rot/rot_iter_invl;
                 end
 
