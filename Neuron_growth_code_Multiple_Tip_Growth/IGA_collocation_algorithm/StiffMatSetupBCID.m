@@ -7,8 +7,8 @@ coll_Lhs(:,bcdof) = 0;
 coll_Rhs(bcdof) = N(bcdof);
 coll_Lhs = spdiags(diag_lhs, 0, coll_Lhs);
 
-coll_Lhs = sparse(coll_Lhs);
-coll_Rhs = sparse(coll_Rhs);
+% coll_Lhs = sparse(coll_Lhs);
+% coll_Rhs = sparse(coll_Rhs);
 
 % function [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,N)
 % 

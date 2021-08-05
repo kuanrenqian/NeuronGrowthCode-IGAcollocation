@@ -1,4 +1,4 @@
-function [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv)
+function [colmats,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv)
 % kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv)
 % This function calculates all basis component for IGA-collocation 2D structured grid
 % kqCollocationDers() takes 2 knotvectors in u and v direction with corresponding
@@ -40,7 +40,7 @@ N2uN2v_val = [];
 % number of basis function (setup this way*) (current version works)
 % using a modified version of derbasisfun3, need to fix this!!!!!
 nobu = length(knotvectorU)-p-2; 
-nobv = length(knotvectorV)-p-2;
+nobv = length(knotvectorV)-q-2;
 
 knotSpanU = zeros([size_collpts^2,1]);
 dersU = zeros([3,p+1,size_collpts^2]);
@@ -99,6 +99,18 @@ N1uN1v = sparse(ind_i,ind_j,N1uN1v_val,length(coll_p),lenu*lenv);
 N2uNv = sparse(ind_i,ind_j,N2uNv_val,length(coll_p),lenu*lenv);
 NuN2v = sparse(ind_i,ind_j,NuN2v_val,length(coll_p),lenu*lenv);
 N2uN2v = sparse(ind_i,ind_j,N2uN2v_val,length(coll_p),lenu*lenv);
+
+% store the LU decomposition of NuNv
+[L_NuNv, U_NuNv] = lu(NuNv);
+
+% store the diagonals of NuNv, N1uNv, NuN1v
+[NuNv_flip, NuNv_id] = extract_diags(NuNv);
+[N1uNv_flip, N1uNv_id] = extract_diags(N1uNv);
+[NuN1v_flip, NuN1v_id] = extract_diags(NuN1v);
+colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
+        'L_NuNv',L_NuNv,'U_NuNv',U_NuNv,'N1uNv',N1uNv,'N1uNv_flip',N1uNv_flip,...
+        'N1uNv_id',N1uNv_id,'NuN1v',N1uNv,'NuN1v_flip',NuN1v_flip,'NuN1v_id',...
+        NuN1v_id,'N1uN1v', N1uN1v, 'N2uNv',N2uNv,'NuN2v',NuN2v,'N2uN2v',N2uN2v);
 
 %%
 
