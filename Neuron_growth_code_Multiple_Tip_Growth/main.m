@@ -337,11 +337,11 @@ for iter=1:1:end_iter
         axis square;
         colorbar;
 
-        subplot(3,2,3);
-        imagesc(tempr_plot(2:end-1,2:end-1));
-        title(sprintf('Tempr at iteration = %.2d',iter));
-        axis square;
-        colorbar;
+%         subplot(3,2,3);
+%         imagesc(tempr_plot(2:end-1,2:end-1));
+%         title(sprintf('Tempr at iteration = %.2d',iter));
+%         axis square;
+%         colorbar;
         
         subplot(3,2,4);
         imagesc(conct_plot(2:end-1,2:end-1));
@@ -426,26 +426,8 @@ for iter=1:1:end_iter
     if (iter < iter_stage2_begin)
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
-    elseif ( iter==iter_stage2_begin )
-            tip = sum_filter(full(phi_plot),0);
-            tip_threshold = 1;
-            size_Max = 0;
-            while(size_Max<3) 
-                % if encoutering error on ttt(i,j) index out of bounds,
-                % run code again (rand initial did not grow out enough
-                % neurite tips at 1000 iterations)
-                [Max_y,Max_x] = find(tip>tip_threshold); % arbitrary threshould
-                size_Max = length(Max_x); % how many maxes
-                tip_threshold = tip_threshold - 0.001;
-            end
-            fprintf('starting size max is : %2d', size_Max);
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
-            initial_angle = atan2(X_dist,Y_dist).';
-            
-            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
 
-    elseif ( iter>iter_stage2_begin && iter < iter_stage3_begin)
+    elseif ( iter>=iter_stage2_begin && iter < iter_stage3_begin)
             tip = sum_filter(full(phi_plot),1);
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
