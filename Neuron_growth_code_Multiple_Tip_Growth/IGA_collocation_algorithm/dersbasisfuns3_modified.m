@@ -89,7 +89,7 @@ for r = 0:p % loop over function index
             j2 = fix(p-r);
         end
         
-        for j = j1:j2
+        for j = j1:j2;
             a(s2+1,j+1) =(a(s1+1,j+1) - a(s1+1,j))./N(pk+2,rk+j+1);
             d = d + a(s2+1,j+1).*N(rk+j+1,pk+1);
         end % j =fix(j2+1);

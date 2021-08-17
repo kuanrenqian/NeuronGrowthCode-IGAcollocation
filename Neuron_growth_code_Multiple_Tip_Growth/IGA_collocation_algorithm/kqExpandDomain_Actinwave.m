@@ -1,11 +1,12 @@
-function [phi_out,theta_out,theta_ori_out,param,tempr_out,phi_initial_out,theta_initial_out,tempr_initial_out,bcid] = ...
-    kqExpandDomain_Actinwave(sz,phi,theta,max_x,max_y,param,tempr,oldNuNv,newNuNv)
+function [phi_out,theta_out,theta_ori_out,conc_t_out,param,tempr_out,phi_initial_out,theta_initial_out,tempr_initial_out,bcid] = ...
+    kqExpandDomain_Actinwave(sz,phi,theta,conc_t,max_x,max_y,param,tempr,oldNuNv,newNuNv)
 
 len = length(phi);
 M = sqrt(len);
 
 phi = reshape(phi,M,M);
 theta = reshape(oldNuNv*theta,M,M);
+conc_t = reshape(oldNuNv*conc_t,M,M);
 actin = param.A;
 hem = param.H;
 HState = param.HState;
@@ -15,6 +16,7 @@ tempr = reshape(tempr,M,M);
 bcs = 4;
 phi = phi(bcs:end-bcs,bcs:end-bcs);
 theta = theta(bcs:end-bcs,bcs:end-bcs);
+conc_t = conc_t(bcs:end-bcs,bcs:end-bcs);
 actin = actin(bcs:end-bcs,bcs:end-bcs);
 hem = hem(bcs:end-bcs,bcs:end-bcs);
 HState = HState(bcs:end-bcs,bcs:end-bcs);
@@ -25,6 +27,7 @@ outSz = sqrt(sz);
 
 phi_out =zeros(outSz);
 theta_out =rand(outSz);
+conc_t_out = zeros(outSz);
 actin_out = zeros(outSz);
 hem_out = zeros(outSz);
 HState_out = zeros(outSz);
@@ -36,6 +39,7 @@ j_off = floor(outSz/2-M/2);
 
 phi_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = phi(3:M-2,3:M-2);
 theta_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = theta(3:M-2,3:M-2);
+conc_t_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = theta(3:M-2,3:M-2);
 
 %%
 theta_ori_out = theta_rotate_guide_sector(outSz,outSz,max_x,max_y,0);
@@ -64,6 +68,7 @@ tempr_initial_out  = reshape(tempr_initial_out,outSz*outSz,1);
 
 phi_out =sparse(reshape(phi_out,outSz^2,1));
 theta_out =sparse(newNuNv\reshape(theta_out,outSz^2,1));
+conc_t_out =sparse(newNuNv\reshape(conc_t_out,outSz^2,1));
 tempr_out =sparse(reshape(tempr_out,outSz^2,1));
 
 bcid = zeros([outSz,outSz]);

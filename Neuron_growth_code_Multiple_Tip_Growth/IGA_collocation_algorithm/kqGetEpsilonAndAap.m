@@ -23,9 +23,5 @@ aap = epsilon.*epsilon_deriv;
 epsilon = U_NuNv\(L_NuNv\epsilon);
 aap = U_NuNv\(L_NuNv\aap);
 
-%epsilon = sparse(epsilon);
-%epsilon_deriv = sparse(epsilon_deriv);
-%aap = sparse(aap);
-
 epsilon = reshape(epsilon,sz*sz,1);
 aap = reshape(aap,sz*sz,1);
