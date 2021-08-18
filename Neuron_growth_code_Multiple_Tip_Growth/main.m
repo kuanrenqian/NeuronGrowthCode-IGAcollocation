@@ -21,7 +21,7 @@ rng('shuffle');
 %% Variable Initialization
 % time stepping variables
 dtime = 5e-3;
-end_iter = 15000;
+end_iter = 20000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -126,7 +126,7 @@ theta = sparse(theta);
 tempr = sparse(tempr);
 bcid = sparse(bcid);
 
-iter_stage2_begin = 1500;
+iter_stage2_begin = 2000;
 iter_stage3_begin = 7000;
 rot_iter_invl = 500;
 phi_actin = reshape(cm.NuNv*phi,lenu,lenv);
@@ -171,7 +171,7 @@ for iter=1:1:end_iter
 %         delta_L = 1;
 %     end
     delta_L = 1;
-    term_change = regular_Heiviside_fun(delta_L);
+    term_change = regular_Heiviside_fun(delta_L)
     
     %%
     E = (alph./pix).*atan(term_change*gamma.*(1-(cm.NuNv*tempr)));
