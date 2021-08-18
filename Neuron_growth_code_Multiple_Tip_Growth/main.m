@@ -102,7 +102,7 @@ theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
 
 % plotting initial phi
-set(gcf,'position',[100,100,700,900]);
+set(gcf,'position',[100,-500,700,900]);
 colormap parula;
 
 % ID for boundary location (suppress 4 edges)
@@ -148,6 +148,11 @@ save('./data/phi_on_cp_initial','phi');
 save('./data/theta_on_cp_initial','theta');
 save('./data/tempr_on_cp_initial','tempr');
 
+Max_x = 0;
+Max_y = 0;
+delta_L = 1;
+term_change = 1;
+
 tic
 % transient iterations
 for iter=1:1:end_iter
@@ -162,22 +167,15 @@ for iter=1:1:end_iter
     [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
         cm.U_NuNv,cm.NuN1v,cm.N1uNv);
     
-    %%
-%     if(iter>500)
-%         r = 5;
-%         g = 0.001;
-%         delta_L = r*conc_t - g;
-%     else
-%         delta_L = 1;
-%     end
-    delta_L = 1;
-    term_change = regular_Heiviside_fun(delta_L)
-    
-    %%
-    E = (alph./pix).*atan(term_change*gamma.*(1-(cm.NuNv*tempr)));
-%     E = (alph./pix).*atan(gamma.*(1-(cm.NuNv*tempr)));
-    
-    if(iter>iter_stage2_begin)
+    if(iter<iter_stage2_begin)
+        E = (alph./pix).*atan(gamma.*(1-(cm.NuNv*tempr)));
+    else
+        r = 5;
+        g = 0.001;
+        delta_L = r*reshape(conct_plot,lenu*lenv,1) - g;
+        term_change = (regular_Heiviside_fun(delta_L));
+        E = (alph./pix).*atan(term_change*gamma.*(1-(cm.NuNv*tempr)));
+
         nnT = reshape(theta_ori,lenu*lenv,1);
         E(abs(nnT)==0) = 0;
         
