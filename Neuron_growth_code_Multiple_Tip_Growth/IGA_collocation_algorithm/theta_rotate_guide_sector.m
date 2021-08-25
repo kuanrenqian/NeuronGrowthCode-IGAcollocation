@@ -5,7 +5,6 @@ for i = 1:lenu
     for j = 1:lenv
         x=i-max_y;
         y=j-max_x;
-%         old_ori = rot_map(i,j);
         r = sqrt(x^2+y^2);
         if (r<10) % size of guiding sector
             theta(i,j) = (atan2(y,x));
@@ -18,19 +17,13 @@ for i = 1:lenu
             elseif (theta(i,j)<-pi)
                 theta(i,j) = theta(i,j) + 2*pi;
             end
-%             rot_map(i,j) = rotate;
         end
     end
 end
 
-for i = max_y-1:max_y+1
-    for j = max_x-1:max_x+1
-%         x_dist = i-max_x;
-%         y_dist = j-max_y;
-%         r = sqrt(x_dist^2+y_dist^2);
-%         if (r<=1)
+for i = max_y-2:max_y+2
+    for j = max_x-2:max_x+2
             theta(i,j) = 3;
-%         end
     end
 end
 

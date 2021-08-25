@@ -21,7 +21,7 @@ rng('shuffle');
 %% Variable Initialization
 % time stepping variables
 dtime = 5e-3;
-end_iter = 20000;
+end_iter = 30000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -29,8 +29,8 @@ tol = 1e-4;
 % B-spline curve order (U,V direction)
 p = 3;
 q = 3;
-Nx = 50;
-Ny = 50;
+Nx = 60;
+Ny = 60;
 
 knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
 knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
@@ -48,7 +48,7 @@ gamma = 15.0;
 tau = 0.3;
 M_phi = 60;
 M_theta = 0.5*M_phi;
-s_coeff = 0.002;
+s_coeff = 0.007;
 
 delta = 0.1;
 epsilonb = 0.04;
@@ -56,11 +56,12 @@ epsilonb = 0.04;
 % Tubulin parameters
 alpha_t = 0.001;
 beta_t = 0.001;
-Diff = 2;
-source_coeff = 0.012;
+Diff = 4;
+% source_coeff = 0.012;
+source_coeff = 0.05;
 
 % Seed size
-seed_radius = 10;
+seed_radius = 20;
 
 % Expanding domain parameters
 BC_tol = 10;
@@ -70,6 +71,7 @@ expd_coef = 1.2;
 [phi,conct] = initialize_neurite_growth(seed_radius, lenu, lenv);
 
 disp('Base variable - initialization done!');
+
 
 %% Constructing coef matrix
 order_deriv = 2;    % highest order of derivatives to calculate
@@ -126,8 +128,8 @@ theta = sparse(theta);
 tempr = sparse(tempr);
 bcid = sparse(bcid);
 
-iter_stage2_begin = 2000;
-iter_stage3_begin = 7000;
+iter_stage2_begin = 1000;
+iter_stage3_begin = 8000;
 rot_iter_invl = 500;
 phi_actin = reshape(cm.NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
@@ -167,16 +169,18 @@ for iter=1:1:end_iter
     [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
         cm.U_NuNv,cm.NuN1v,cm.N1uNv);
     
-    if(iter<iter_stage2_begin)
+    if(iter<=iter_stage2_begin)
         E = (alph./pix).*atan(gamma.*(1-(cm.NuNv*tempr)));
     else
-        r = 5;
-        g = 0.001;
+        nnT = reshape(theta_ori,lenu*lenv,1);
+        conct_plot = reshape(cm.NuNv*conc_t,lenu,lenv);
+        r = 1e6;
+        g = 0.1;
         delta_L = r*reshape(conct_plot,lenu*lenv,1) - g;
         term_change = (regular_Heiviside_fun(delta_L));
-        E = (alph./pix).*atan(term_change*gamma.*(1-(cm.NuNv*tempr)));
+        term_change(nnT==1)=1;
 
-        nnT = reshape(theta_ori,lenu*lenv,1);
+        E = (alph./pix).*atan(term_change.*gamma.*(1-(cm.NuNv*tempr)));
         E(abs(nnT)==0) = 0;
         
         subplot(3,2,3);
@@ -188,13 +192,14 @@ for iter=1:1:end_iter
         
         subplot(3,2,5);
         tip = sum_filter(phi_plot,0);     
-        imagesc(tip); hold on;
+        imagesc(reshape(term_change,lenu,lenv)); hold on;
         plot(Max_x,Max_y,'o','MarkerEdgeColor','c');
         title(sprintf('theta at iteration = %.2d',iter));
         axis square;
         colorbar;
         
     end
+    
     
     %% Phi (Implicit Nonlinear NR method)
     % NR method initial guess (guess current phi)
@@ -317,7 +322,7 @@ for iter=1:1:end_iter
     conc_t = conc_t_new;
 
     %% Plotting figures
-    if(mod(iter,1) == 0 || iter == 1)
+    if(mod(iter,50) == 0 || iter == 1)
         phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
         theta_plot = reshape(cm.NuNv*theta_new,lenu,lenv);
         tempr_plot = reshape(cm.NuNv*tempr_new,lenu,lenv);
@@ -334,12 +339,6 @@ for iter=1:1:end_iter
         title(sprintf('theta_plot at iteration = %.2d',iter));
         axis square;
         colorbar;
-
-%         subplot(3,2,3);
-%         imagesc(tempr_plot(2:end-1,2:end-1));
-%         title(sprintf('Tempr at iteration = %.2d',iter));
-%         axis square;
-%         colorbar;
         
         subplot(3,2,4);
         imagesc(conct_plot(2:end-1,2:end-1));
@@ -457,28 +456,10 @@ for iter=1:1:end_iter
                     y_dist = lenv/2-max_y;
                     axon_angle = atan2(x_dist,y_dist);
                     rotate = axon_angle;
-                    
-%                     axon_angle_up = axon_angle+pi/2;
-%                     if(axon_angle_up>pi)
-%                         axon_angle_up = axon_angle_up - 2*pi;
-%                     elseif (axon_angle_up<-pi)
-%                         axon_angle_up = axon_angle_up + 2*pi;
-%                     end          
-%                     axon_angle_down = axon_angle-pi/2;
-%                     if(axon_angle_down>pi)
-%                         axon_angle_down = axon_angle_down - 2*pi;
-%                     elseif (axon_angle_down<-pi)
-%                         axon_angle_down = axon_angle_down + 2*pi;
-%                     end        
-                    
                 end
             
                 if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
                     Rot = rand*pi/2-pi/4;
-%                     while ( (Rot+rotate)<axon_angle_down ||...
-%                             (Rot+rotate)>axon_angle_up)
-%                         Rot = rand*pi/2-pi/4;
-%                     end
                     rotate_intv = Rot/rot_iter_invl;
                 end
 
@@ -494,3 +475,6 @@ for iter=1:1:end_iter
 end
 
 disp('All simulations complete!\n');
+
+%% Save all vars for debugging
+%save('workspace_var.mat');
