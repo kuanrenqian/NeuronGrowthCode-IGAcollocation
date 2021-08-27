@@ -7,6 +7,10 @@ close all;
 clear;
 clc;
 
+%% for running on PSC without GUI
+%f = figure('visible','off');
+
+
 %% Including Path
 addpath('./IGA_collocation_algorithm');
 addpath('./Hem_algorithm');
