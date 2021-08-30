@@ -19,14 +19,53 @@ for i=1:lenu
             phi_val(end+1) = 1;            
             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 
-            %% multi neuron
-%             ind_i(end+1) = i+15;
-%             ind_i(end+1) = i-15;
-%             ind_j(end+1) = j+15;
-%             ind_j(end+1) = j-15;
+            %% 2 neurons
+%             ind_i(end+1) = i+25;
+%             ind_i(end+1) = i-25;
+
+%             ind_j(end+1) = j+25;
+%             ind_j(end+1) = j-25;
 %             
 %             phi_val(end+1) = 1;            
 %             phi_val(end+1) = 1;                    
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+
+            %% 3 neurons
+%             ind_i(end+1) = i-30;
+%             ind_i(end+1) = i+30;
+%             ind_i(end+1) = i+30;
+% 
+%             ind_j(end+1) = j;
+%             ind_j(end+1) = j+35;
+%             ind_j(end+1) = j-35;  
+%             
+%             phi_val(end+1) = 1;            
+%             phi_val(end+1) = 1;                    
+%             phi_val(end+1) = 1;      
+%             
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+
+            %% 4 neurons
+%             ind_i(end+1) = i-35;
+%             ind_i(end+1) = i-35;
+%             ind_i(end+1) = i+35;
+%             ind_i(end+1) = i+35;
+% 
+%             ind_j(end+1) = j-35;
+%             ind_j(end+1) = j+35;
+%             ind_j(end+1) = j+35;  
+%             ind_j(end+1) = j-35;  
+%             
+%             phi_val(end+1) = 1;            
+%             phi_val(end+1) = 1;                    
+%             phi_val(end+1) = 1;      
+%             phi_val(end+1) = 1;      
+%             
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 %             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 %             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 
