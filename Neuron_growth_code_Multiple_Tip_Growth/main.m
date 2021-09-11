@@ -7,25 +7,25 @@ close all;
 clear;
 clc;
 
-%% for running on PSC without GUI
-%f = figure('visible','off');
+%%
+% f = figure('visible','off');
 
-
-%% Including Path
-addpath('./IGA_collocation_algorithm');
-addpath('./Hem_algorithm');
+%% Including Path 
+addpath('../IGA_collocation_algorithm');
+addpath('../Hem_algorithm');
 
 disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
 disp('********************************************************************');
 
 % diary 'log_Neuron_Growth'
-rng('shuffle');
+rngSeed = rng('shuffle');
+save('rngSeed','rngSeed');
 
 %% Variable Initialization
 % time stepping variables
 dtime = 5e-3;
-end_iter = 30000;
+end_iter = 35000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -108,7 +108,7 @@ theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
 
 % plotting initial phi
-set(gcf,'position',[100,-500,700,900]);
+set(gcf,'position',[100,100,800,200]);
 colormap parula;
 
 % ID for boundary location (suppress 4 edges)
@@ -134,6 +134,7 @@ bcid = sparse(bcid);
 
 iter_stage2_begin = 1000;
 iter_stage3_begin = 8000;
+iter_stage45_begin = 15000;
 rot_iter_invl = 500;
 phi_actin = reshape(cm.NuNv*phi,lenu,lenv);
 param = GetParam(phi_actin,dtime);
@@ -147,7 +148,7 @@ size_Max = 0;
 % windowSize=5;  % Decide as per your requirements
 % kernel=ones(windowSize)/windowSize^2;
 
-var_save_invl = 1000;
+var_save_invl = 500;
 png_save_invl = 100;
 
 save('./data/phi_on_cp_initial','phi');
@@ -166,8 +167,8 @@ for iter=1:1:end_iter
     if(mod(iter,50) == 0)
         fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
         toc
-        tic
     end
+    
     % calculating a and a*a' (aap) in the equation using theta and phi
     xtheta = cm.NuNv*theta;
     [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
@@ -187,21 +188,14 @@ for iter=1:1:end_iter
         E = (alph./pix).*atan(term_change.*gamma.*(1-(cm.NuNv*tempr)));
         E(abs(nnT)==0) = 0;
         
-        subplot(3,2,3);
-        phi_plot = reshape(cm.NuNv*phi,lenu,lenv);
-        imagesc(reshape(E,lenu,lenv)+phi_plot);
-        title(sprintf('E overlay with phi'));
-        axis square;
-        colorbar;
-        
-        subplot(3,2,5);
-        tip = sum_filter(phi_plot,0);     
-        imagesc(reshape(term_change,lenu,lenv)); hold on;
-        plot(Max_x,Max_y,'o','MarkerEdgeColor','c');
-        title(sprintf('theta at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-        
+        if(mod(iter,50) == 0)
+            subplot(1,3,2);
+            phi_plot = reshape(cm.NuNv*phi,lenu,lenv);
+            imagesc(reshape(E,lenu,lenv)+phi_plot);
+            title(sprintf('E overlay with phi'));
+            axis square;
+            colorbar;
+        end
     end
     
     
@@ -332,31 +326,19 @@ for iter=1:1:end_iter
         tempr_plot = reshape(cm.NuNv*tempr_new,lenu,lenv);
         conct_plot = reshape(cm.NuNv*conc_t_new,lenu,lenv);
         
-        subplot(3,2,1);
+        subplot(1,3,1);
         imagesc(phi_plot);
         title(sprintf('Phi at iteration = %.2d',iter));
         axis square;
         colorbar;
-
-        subplot(3,2,2);
-        imagesc(theta_plot);
-        title(sprintf('theta_plot at iteration = %.2d',iter));
-        axis square;
-        colorbar;
         
-        subplot(3,2,4);
-        imagesc(conct_plot(2:end-1,2:end-1));
-        title(sprintf('Tubulin at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-        
-        %         subplot(3,2,5);
+        %         subplot(1,3,5);
 %         imagesc(param.H);
 %         title(sprintf('H at iteration = %.2d',iter));
 %         axis square;
 %         colorbar;
 
-%         subplot(3,2,6);
+%         subplot(1,3,6);
 %         imagesc(param.A);
 %         title(sprintf('A at iteration = %.2d',iter));
 %         axis square;
@@ -373,7 +355,6 @@ for iter=1:1:end_iter
             end
         end
         
-        expd_state = 0;
         if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
                 max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
                 max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
@@ -408,7 +389,6 @@ for iter=1:1:end_iter
 
             phiK = phi;
 
-            expd_state = 1;
             toc
             disp('********************************************************************');
         end
@@ -416,20 +396,23 @@ for iter=1:1:end_iter
     
     if(mod(iter,var_save_invl)==0 || iter == 0)
         try
-            save(sprintf('./data/phi_on_cp_%2d',iter),'phiK');
-            save(sprintf('./data/theta_on_cp_%2d',iter),'theta_new');
-            save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr_new');
+            save(sprintf('./data/phi_on_cp_%2d',iter),'phi');
+            save(sprintf('./data/theta_on_cp_%2d',iter),'theta');
+            save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr');
+            save(sprintf('./data/conct_on_cp_%2d',iter),'conc_t');
         catch
             fprintf('data write error skipped.\n');
         end
     end
     
+    phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
+
     if (iter < iter_stage2_begin)
         max_x = floor(lenu/2);
         max_y = floor(lenv/2);
 
-    elseif ( iter>=iter_stage2_begin && iter < iter_stage3_begin)
-            tip = sum_filter(full(phi_plot),1);
+    elseif (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
+            tip = sum_filter(full(phi_plot),0);
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
@@ -438,43 +421,59 @@ for iter=1:1:end_iter
             initial_angle = atan2(X_dist,Y_dist).';
             
             [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
-    elseif ( iter>=iter_stage3_begin)
-                expd_state = 0;
-                phi_full = full(reshape(cm.NuNv*phiK,lenu,lenv));
-                dist= zeros(lenu,lenv);
+    elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
+
+            phi_id = full(phi_plot);
+            [Nx,Ny] = size(phi_id);
+            phi_id = round(phi_id);
+            phi_sum = zeros(Nx,Ny);
+
+            L = bwconncomp(phi_id,4);
+            S = regionprops(L,'Centroid');
+            centroids = floor(cat(1,S.Centroid));
+            
+            ID = zeros(size(phi_id));
+            dist= zeros(lenu,lenv,L.NumObjects);
+
+            max_x = [];
+            max_y = [];
+            for k = 1:L.NumObjects
+                ID(L.PixelIdxList{k}) = k;
                 for i = 1:lenu
                     for j = 1:lenv
-                        if(phi_full(i,j)>0.85)
-                            dist(i,j) = sqrt((i-lenu/2)^2+(j-lenv/2)^2);
-                        end
+                        dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,1))^2+(j-centroids(k,2))^2);
                     end
                 end
 
-                dist = reshape(dist,lenu*lenv,1);
-                [max_dist,max_index] = max(dist);
-                max_x = ceil(max_index/lenu);
-                max_y = rem(max_index,lenu);
+                dist_k = reshape(dist(:,:,k),lenu*lenv,1);
+                [max_dist,max_index] = max(dist_k);
+                max_x(k) = ceil(max_index/lenu);
+                max_y(k) = rem(max_index,lenu);
+%                 if(iter == iter_stage3_begin)
+%                     x_dist = max_x(k)-centroids(k,1);
+%                     y_dist = centroids(k,2)-max_y(k);
+%                     axon_angle = atan2(x_dist,y_dist);
+%                     rotate = axon_angle;
+%                 end
 
-                if(iter == iter_stage3_begin)
-                    x_dist = max_x-lenu/2;
-                    y_dist = lenv/2-max_y;
-                    axon_angle = atan2(x_dist,y_dist);
-                    rotate = axon_angle;
-                end
+%                 if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
+%                     Rot = rand*pi/2-pi/4;
+%                     rotate_intv = Rot/rot_iter_invl;
+%                 end
+% 
+%                 theta_ori(k) = theta_rotate_guide_sector(centroids(k,1),centroids(k,2),max_x(k),max_y(k),rotate(k));
+%                 rotate(k) = rotate(k) + rotate_intv;
+            end
+            size_Max = length(max_x);
+            [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,1,size_Max);
             
-                if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
-                    Rot = rand*pi/2-pi/4;
-                    rotate_intv = Rot/rot_iter_invl;
-                end
-
-                theta_ori = theta_rotate_guide_sector(lenu,lenv,max_x,max_y,rotate);
-                rotate = rotate + rotate_intv;
-
-                subplot(3,2,6);
+            if(mod(iter,50) == 0)
+                subplot(1,3,3);
                 imagesc(theta_ori);
-                title(sprintf('rot_map at iteration = %.2d',iter));
+                title(sprintf('Phi at iteration = %.2d',iter));
                 axis square;
                 colorbar;
+            end
     end
 end
 
