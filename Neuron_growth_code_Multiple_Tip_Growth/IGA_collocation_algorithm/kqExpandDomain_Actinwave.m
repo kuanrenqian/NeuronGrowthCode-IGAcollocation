@@ -42,7 +42,7 @@ theta_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = theta(3:M-2,3:M-2);
 conc_t_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = conc_t(3:M-2,3:M-2);
 
 %%
-theta_ori_out = theta_rotate_guide_sector(outSz,outSz,max_x,max_y,0);
+theta_ori_out = theta_rotate_guide_sector(outSz,outSz,floor(M/2),floor(M/2),0);
 %%
 
 actin_out(3+i_off:M-2+i_off,3+j_off:M-2+j_off) = actin(3:M-2,3:M-2);

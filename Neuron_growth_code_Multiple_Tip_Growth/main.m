@@ -8,7 +8,7 @@ clear;
 clc;
 
 %%
-% f = figure('visible','off');
+f = figure('visible','off');
 
 %% Including Path 
 addpath('../IGA_collocation_algorithm');
@@ -132,7 +132,7 @@ theta = sparse(theta);
 tempr = sparse(tempr);
 bcid = sparse(bcid);
 
-iter_stage2_begin = 1000;
+iter_stage2_begin = 1200;
 iter_stage3_begin = 8000;
 iter_stage45_begin = 15000;
 rot_iter_invl = 500;
