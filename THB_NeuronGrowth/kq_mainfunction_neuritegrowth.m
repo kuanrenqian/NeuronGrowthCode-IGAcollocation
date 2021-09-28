@@ -5,8 +5,6 @@ close all;
 addpath('./setparameters');
 addpath('./thbspline');
 addpath('./iterationloop_funcs');
-addpath('./IGA_collocation_algorithm');
-addpath('./Hem_algorithm');
 
 % diary 'log_Neuron_Growth'
 rngSeed = rng('shuffle');
