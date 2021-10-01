@@ -7,7 +7,7 @@ Jm = cell(ac_ct,1);
 pU = parameters.pU;
 pV = parameters.pV;
 
-for i = 1:ac_ct,
+for i = 1:ac_ct
     
     cell_ind = ac(i,1);
     cell_lev = ac(i,2);
@@ -29,8 +29,8 @@ for i = 1:ac_ct,
     end
     curr_cell = cell_ind;
     
-    if(cell_lev~=1),
-        for m = (cell_lev-1):-1:1,
+    if(cell_lev~=1)
+        for m = (cell_lev-1):-1:1
             EEM = Em{m,1};
             EEMM = Em{m+1,1};
             DEM = Dm{m,1};
@@ -38,8 +38,8 @@ for i = 1:ac_ct,
             curr_cell = EEMM{curr_cell,10};
             local_supp = EEM{curr_cell,6};
             local_supp_size = size(local_supp,2);
-            for j = 1:local_supp_size,
-                if(DEM{local_supp(1,j),3}==1),
+            for j = 1:local_supp_size
+                if(DEM{local_supp(1,j),3}==1)
                     counter=counter+1;
                     cell_supp(counter,1) = local_supp(1,j);
                     cell_supp(counter,2) = m;
@@ -51,7 +51,7 @@ for i = 1:ac_ct,
 end
 %==========================================================================
 Coeff = cell(ac_ct,1);
-for  i = 1:ac_ct,
+for  i = 1:ac_ct
     count=0;
     cell_ind = ac(i,1);
     cell_lev = ac(i,2);
@@ -63,20 +63,20 @@ for  i = 1:ac_ct,
     ct = zeros(16,16);
     ct11 = zeros(16,16);
     coef_arr = zeros(1,16);
-    for j = 1:lb_size,
+    for j = 1:lb_size
         ct(j,j) = 1;
     end
     ctemp{cell_lev,1} = ct;
-    for j =1:lb_size,
-        if(DE{local_b(1,j),3}==1),
+    for j =1:lb_size
+        if(DE{local_b(1,j),3}==1)
             count= count+1;
             coef_arr(count,:) = ct(j,:);
         end
     end
     curr_cell = cell_ind;
     curr_cell_level = cell_lev;
-    if(cell_lev~=1),
-        for m=(cell_lev-1):-1:1,
+    if(cell_lev~=1)
+        for m=(cell_lev-1):-1:1
             EEM = Em{m,1};
             DEM = Dm{m,1};
             DEMM = Dm{m+1,1};
@@ -87,13 +87,13 @@ for  i = 1:ac_ct,
             ls_size = size(local_s,2);
             ct = zeros(16,16);
             ct11 = zeros(16,16);
-            for j=1:ls_size,
+            for j=1:ls_size
                 cmat = DEM{local_s(1,j),12};
-                for k=1:ls_size,
-                    for k1=1:size(cmat,1),
-                        if(cmat(k1,2)==local_s1(1,k)),
+                for k=1:ls_size
+                    for k1=1:size(cmat,1)
+                        if(cmat(k1,2)==local_s1(1,k))
                             ct(j,k) = cmat(k1,1);
-                            if(DEMM{local_s1(1,k),3}==0&&DEMM{local_s1(1,k),7}==0),
+                            if(DEMM{local_s1(1,k),3}==0&&DEMM{local_s1(1,k),7}==0)
                                 ct11(j,k) = ct(j,k);
                             end
                         end
@@ -104,8 +104,8 @@ for  i = 1:ac_ct,
             ct = ct*ct1;
             ctnew = ct11*ct1;
             ctemp{m,1} = ct;
-            for j=1:ls_size,
-                if(DEM{local_s(1,j),3}==1),
+            for j=1:ls_size
+                if(DEM{local_s(1,j),3}==1)
                     count = count+1;
                     coef_arr(count,:) = ctnew(j,:);
                 end
@@ -122,8 +122,8 @@ unobMAX = nobU(multilev+1,1);
 vnobMAX = nobV(multilev+1,1);
 EE = Em{multilev+1,1};
 p_ind = 0;
-for i = 1:size(X,1),
-    for j = 1:size(X,2),
+for i = 1:size(X,1)
+    for j = 1:size(X,2)
         p_ind = p_ind+1;
         uu = FindSpan(unobMAX-1,pU,X(j,i),kuMAX) + 1;
         vv = FindSpan(vnobMAX-1,pV,Y(j,i),kvMAX) + 1;
@@ -132,7 +132,7 @@ for i = 1:size(X,1),
         celly = (vv-pV);
         cell_ind = nelemU(multilev+1,1)*(celly-1)+cellx;
         curr_cell = cell_ind;
-        if(EE{cell_ind,4} == 1),
+        if(EE{cell_ind,4} == 1)
             
             act_ind = EE{cell_ind,11};
             SB = Jm{act_ind,1};
@@ -144,30 +144,11 @@ for i = 1:size(X,1),
             RRD1 = dersbasisfuns3(uu,pU,2,X(j,i),kuMAX);
             RRD2 = dersbasisfuns3(vv,pV,2,Y(j,i),kvMAX);
 
-            X40 = X(j,i)*40;
-            kuMAX40 = kuMAX*40;
-            Y40 = Y(j,i)*40;
-            kvMAX40 = kvMAX*40;
-                       
-            RRD1 = dersbasisfuns3(uu,pU,2,X40,kuMAX40);
-            RRD2 = dersbasisfuns3(vv,pV,2,Y40,kvMAX40);
-            
-%             RRD1
-%             RRD2
-            
             RRD = (RRD1(1,:)')*(RRD2(1,:));
             RRDU = (RRD1(1,:)')*(RRD2(2,:));
             RRDV = (RRD1(2,:)')*(RRD2(1,:));
             RRDUU = (RRD1(1,:)')*(RRD2(3,:));
             RRDVV = (RRD1(3,:)')*(RRD2(1,:));
- 
-%             RRD = (RRD1(1,:)').*(RRD2(1,:));
-%             RRDU = (RRD1(1,:)').*(RRD2(2,:));
-%             RRDV = (RRD1(2,:)').*(RRD2(1,:));
-%             RRDUU = (RRD1(1,:)').*(RRD2(3,:));
-%             RRDVV = (RRD1(3,:)').*(RRD2(1,:));
-            
-%            RRD
             
             inc=0;
             phii = zeros(16,1);
@@ -176,8 +157,8 @@ for i = 1:size(X,1),
             phiiuu = zeros(16,1);
             phiivv = zeros(16,1);
             
-            for m1 = 1:size(RRD,1),
-                for m2=1:size(RRD,2),
+            for m1 = 1:size(RRD,1)
+                for m2=1:size(RRD,2)
                     phii(16-inc,1)= RRD(m2,m1);
                     phiiu(16-inc,1) = RRDU(m2,m1);
                     phiiv(16-inc,1) = RRDV(m2,m1);
@@ -201,11 +182,11 @@ for i = 1:size(X,1),
             Pixel{p_ind,6} = phi_pivv;
         else
             
-            for m = (multilev+1):-1:2,
+            for m = (multilev+1):-1:2
                 EEM = Em{m,1};
                 EEMM = Em{(m-1),1};
                 curr_cell = EEM{curr_cell,10};
-                if(EEMM{curr_cell,4} == 1),
+                if(EEMM{curr_cell,4} == 1)
                     
                     act_ind = EEMM{curr_cell,11};
                     SB = Jm{act_ind,1};
@@ -219,17 +200,9 @@ for i = 1:size(X,1),
                     pix_coeff = Coeff{act_ind,1};
                     SB1 = EE{cell_ind,6};
                     sb_size1 = size(SB1,1);
-                    
-                    X40 = X(j,i)*40;
-                    knotuu40 = knotuu*40;
-                    Y40 = Y(j,i)*40;
-                    knotvv40 = knotvv*40;
 
-                    RRD1 = dersbasisfuns3(u1,pU,2,X40,knotuu40);
-                    RRD2 = dersbasisfuns3(v1,pV,2,Y40,knotvv40);
-
-%                     RRD1 = dersbasisfuns3(u1,pU,2,X(j,i),knotuu);
-%                     RRD2 = dersbasisfuns3(v1,pV,2,Y(j,i),knotvv);
+                    RRD1 = dersbasisfuns3(u1,pU,2,X(j,i),knotuu);
+                    RRD2 = dersbasisfuns3(v1,pV,2,Y(j,i),knotvv);
 
                     RRD = (RRD1(1,:)')*(RRD2(1,:));
                     RRDU = (RRD1(1,:)')*(RRD2(2,:));
@@ -243,8 +216,8 @@ for i = 1:size(X,1),
                     phiiv = zeros(16,1);
                     phiiuu = zeros(16,1);
                     phiivv = zeros(16,1);
-                    for m1 = 1:size(RRD,1),
-                        for m2=1:size(RRD,2),
+                    for m1 = 1:size(RRD,1)
+                        for m2=1:size(RRD,2)
                             phii(16-inc,1)= RRD(m2,m1);
                             phiiu(16-inc,1) = RRDU(m2,m1);
                             phiiv(16-inc,1) = RRDV(m2,m1);

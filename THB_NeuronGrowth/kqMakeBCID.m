@@ -8,17 +8,18 @@ for i = 1:bc_sz
     bcid(i,bc_sz-bc_layers:bc_sz) = ones(1,bc_layers+1);
 end
 
-% bcid_cp  = interp2(coll_X,coll_Y,bcid,THBfinal(:,1),THBfinal(:,2),'spline');
-% bcid_cp(isnan(bcid_cp(:))) = 0.0;
-% bcid_cp = round(bcid_cp);
+bcid_cp  = interp2(coll_X,coll_Y,bcid,THBfinal(:,1),THBfinal(:,2),'spline');
+bcid_cp(isnan(bcid_cp(:))) = 0.0;
+bcid_cp = round(bcid_cp);
 
-bcid_cp = zeros(length(THBfinal),1);
-for i = 1:length(THBfinal)
-    x = THBfinal(i,1);
-    y = THBfinal(i,2);
-    if (x==0 || y ==0 || x==1 || y==1)
-        bcid_cp(i) = 1;
-    end
-end
+% bcid_cp = zeros(length(THBfinal),1);
+% for i = 1:length(THBfinal)
+%     x = THBfinal(i,1);
+%     y = THBfinal(i,2);
+%     if (x==0 || y ==0 || x==1 || y==1)
+%         bcid_cp(i) = 1;
+%     end
+% end
+% 
 
 end

@@ -15,8 +15,8 @@ rngSeed = rng('shuffle');
 
 parameters = setparameters_neurite(Nx,Ny);
 
-[phi,conct] = kqInitializeNeuriteGrowth(5,22);
-phi = reshape(phi,22,22);
+[phi,conct] = kqInitializeNeuriteGrowth(5,Nx);
+phi = reshape(phi,Nx,Ny);
 
 tic
 MultipleResolution2D_neurite

@@ -1,7 +1,8 @@
 clc;
-clear all;
+clear variables;
 close all;
 
+% path to Aishwarya THB functions
 addpath('./setparameters');
 addpath('./thbspline');
 addpath('./iterationloop_funcs');
@@ -12,13 +13,14 @@ save('./postprocessing/rngSeed','rngSeed');
 
 % suppress griddata warning (plotting dup points warning)
 % warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
+
 % suppress rankDeficient warning (rows of zero in matrix)
 warn_id = 'MATLAB:rankDeficientMatrix'; 
 warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
-dtime = 5e-3;
+dtime = 1e-3;
 end_iter = 35000;
 
 % tolerance for NR method
@@ -26,12 +28,13 @@ tol = 1e-3;
 
 % neuron growth variables
 aniso = 6;
-kappa= 4;
+% kappa= 4;
+kappa= 2;
 alph = 0.9; % changing name to alph cause alpha is a function
 pix=4.0*atan(1.0);
 gamma = 15.0;
 tau = 0.3;
-M_phi = 60;
+M_phi = 30;
 M_theta = 0.5*M_phi;
 s_coeff = 0.007;
 
@@ -55,8 +58,8 @@ expd_coef = 1.2;
 disp('Simulation parameters initialization done!');
 
 %% Domain Setup
-Nx = 30;
-Ny = 30;
+Nx = 40;
+Ny = 40;
 dx = 1/Nx;
 dy = 1/Ny;
 

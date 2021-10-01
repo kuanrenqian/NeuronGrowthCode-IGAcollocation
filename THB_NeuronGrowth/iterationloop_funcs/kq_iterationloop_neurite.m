@@ -2,9 +2,17 @@
 % calculating THB NuNv,N1uNv... and store in cm
 cm = kqTHBders(Pixel,Jm,Pm,Dm);
 
+% getting collocation pts
 CEb = Pm{1,1};
 [M,~] = size(CEb);
 coll_sz = sqrt(M);
+% create collocation/control points mesh grid for later use
+coll_X_array = CEb(1:coll_sz,2).';
+coll_Y_array = CEb(1:coll_sz,2).';
+[coll_X,coll_Y] = meshgrid(coll_X_array,coll_Y_array);
+cp_X_array = linspace(0,1,Nx).';
+cp_Y_array = linspace(0,1,Nx).';
+[cp_X,cp_Y] = meshgrid(cp_X_array,cp_Y_array);
 
 % Get locally refined points from THB
 THBfinal = zeros(bf_ct,2);
@@ -16,59 +24,43 @@ for i = 1:bf_ct
     THBfinal(i,1) = Pi(bi,1);
     THBfinal(i,2) = Pi(bi,2);
 end
-% create collocation mesh grid
-coll_X_array = CEb(1:coll_sz,2).';
-coll_Y_array = CEb(1:coll_sz,2).';
-[coll_X,coll_Y] = meshgrid(coll_X_array,coll_Y_array);
-cp_X_array = linspace(0,1,Nx).';
-cp_Y_array = linspace(0,1,Nx).';
-[cp_X,cp_Y] = meshgrid(cp_X_array,cp_Y_array);
 
 % setting bcid (dirichlet boundary condition id)
 bc_layers = 1;
 [bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,cp_X,cp_Y,THBfinal);
 
-% % % % initializing phi, theta, and temperature   
-% len_cp = length(THBfinal);
-% phi_cp = zeros(len_cp,1);
-% conct_cp = zeros(len_cp,1);
-% for i = 1:len_cp
-%     x = THBfinal(i,1);
-%     y = THBfinal(i,2);
-%     if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
-%         r = sqrt((x-0.5)^2+(y-0.5)^2);
-%         phi_cp(i) = 1;
-%         conct_cp(i) = (0.5+0.5*tanh(seed_radius-r)/2);
-%     end
-% end
-% theta_cp  = rand([len_cp,1]);
-% tempr_cp = zeros(len_cp,1);
-% theta_ori_cp = zeros(len_cp,1);
+% initializing phi, theta, and temperature on locally refined points
+len_cp = length(THBfinal);
+phi_cp = zeros(len_cp,1);
+conct_cp = zeros(len_cp,1);
+for i = 1:len_cp
+    x = THBfinal(i,1);
+    y = THBfinal(i,2);
+    if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
+        r = sqrt((x-0.5)^2+(y-0.5)^2);
+        phi_cp(i) = 1;
+        conct_cp(i) = (0.5+0.5*tanh(seed_radius-r)/2);
+    end
+end
+theta_cp  = rand([len_cp,1]);
+tempr_cp = zeros(len_cp,1);
+theta_ori_cp = zeros(len_cp,1);
 
-phi_cp = cm.NuNv\phi;
-theta_cp = cm.NuNv\rand(Nx*Ny,1);
-tempr_cp = cm.NuNv\zeros(Nx*Ny,1);
+%% debug test
+% figure;
+% subplot(2,2,1);
+% imagesc(reshape(cm.NuNv*phi_cp,Nx,Ny));
+% colorbar;
+% subplot(2,2,2);
+% imagesc(reshape(cm.N1uNv*phi_cp,Nx,Ny));
+% colorbar;
+% subplot(2,2,3);
+% lapP = reshape(cm.lap*phi_cp,Nx,Ny);
+% imagesc(lapP);
+% colorbar;
 
-% Visualize initialization of phi on locally refined collocation points
-figure
-subplot(2,2,1);
-% scatter3(THBfinal(:,1),THBfinal(:,2),phi_cp,30,phi_cp,'fill');
-imagesc(reshape(cm.NuNv*phi_cp,Nx,Ny));
-title('Initial Phi');
-subplot(2,2,2);
-% scatter3(THBfinal(:,1),THBfinal(:,2),theta_cp,30,theta_cp,'fill');
-imagesc(reshape(cm.NuNv*theta_cp,Nx,Ny));
-title('Initial Theta');
-subplot(2,2,3);
-% scatter3(THBfinal(:,1),THBfinal(:,2),tempr_cp,30,tempr_cp,'fill');
-imagesc(reshape(cm.NuNv*tempr_cp,Nx,Ny));
-title('Initial T');
-% subplot(2,2,4);
-% scatter3(THBfinal(:,1),THBfinal(:,2),conct_cp,30,conct_cp,'fill');
-% title('Initial Tubulin');
-
+%%
 phi_initial = zeros(size(phi_cp));
-% conct_initial  = zeros(size(conct_cp));
 theta_initial  = theta_cp;
 tempr_initial  = zeros(size(tempr_cp));
 
@@ -82,14 +74,15 @@ tic
 % transient iterations
 for iter=1:1:end_iter
 
-%     if(mod(iter,10) == 0)
-        fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
-        toc
-%     end
+    fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
+    toc
 
+    % de-coupling theta (debug)
+    theta_cp = rand(size(theta_cp));
     % calculating a and a*a' (aap) in the equation using theta and phi
-    [a_cp, ~, aap_cp,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,theta_cp,cm.NuNv,cm.NuN1v,cm.N1uNv);
+    [a_cp, ~, aap_cp,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,cm.NuNv*theta_cp,cm.NuNv,cm.NuN1v,cm.N1uNv);
 
+    % run with simple E calculation
     tempr = cm.NuNv*tempr_cp;
     E = (alph./pix).*atan(gamma.*(1-tempr));
 
@@ -186,52 +179,29 @@ for iter=1:1:end_iter
         dt_t = dt_t+dtime;
     end
 
+    dt_tempr = dtime/10;
+    dt_theta = dtime;
+
     %% Temperature (Implicit method)
     temprLHS = cm.NuNv;
-    temprRHS = (cm.NuNv*tempr_cp + 3*cm.lap*tempr_cp.*dt_t + kappa*(NNpk-NNp));  %cm.NuNv\phiK
+    temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));  %cm.NuNv\phiK
     temprRHS = temprRHS - temprLHS*tempr_initial;
     [temprLHS, temprRHS] = kqStiffMatSetupBCID(temprLHS,temprRHS,bcid_cp);
 
     tempr_cp_new = temprLHS\temprRHS;
 
     %% Theta (Implicit method)
-    lap_theta = cm.lap*theta_cp;
-    P2 = 10*NNpk.^3-15*NNpk.^4+6*NNpk.^5;
-    P2 = P2.*s_coeff.*mag_grad_theta;
-
-    thetaLHS = (cm.NuNv-dt_t.*M_theta.*P2.*cm.lap);
-    thetaRHS = (cm.NuNv*theta_cp);
-    thetaRHS = thetaRHS - thetaLHS*theta_initial;
-    [thetaLHS, thetaRHS] = kqStiffMatSetupBCID(thetaLHS,thetaRHS,bcid_cp);
-
-    theta_cp_new = thetaLHS\thetaRHS;
-
-%     %% Tubulin concentration (Implicit method)
-%     NNct = cm.NuNv*conc_t;
-%     N1Nct = cm.N1uNv*conc_t;
-%     NN1ct = cm.NuN1v*conc_t;
-%     N2Nct = cm.N2uNv*conc_t;
-%     NN2ct = cm.NuN2v*conc_t;
-%     LAPct = lap*conc_t;
+% %     lap_theta = cm.lap*theta_cp;
+%     P2 = 10*NNpk.^3-15*NNpk.^4+6*NNpk.^5;
+%     P2 = P2.*s_coeff.*mag_grad_theta;
 % 
-%     sum_lap_phi = sum(LAPpk.^2);
-%     NNp = cm.NuNv*phi;
-%     nnpk = round(NNpk);
-%     
-%     term_diff = Diff.*(N1Npk.*N1Nct+NNpk.*LAPct+NN1pk.*NN1ct);
-%     term_alph = alpha_t.*(N1Npk.*NNct+NNpk.*N1Nct+NN1pk.*NNct+NNpk.*NN1ct);
-%     term_beta = beta_t.*NNpk.*NNct;
-%     term_source = source_coeff.*LAPpk.^2./sum_lap_phi;
-%     
-%     conc_t_RHS = term_diff-term_alph-term_beta+term_source;
-%     conc_t_RHS = (conc_t_RHS-NNct.*(NNpk-NNp)./dt_t).*dt_t./NNp+NNct;
-%     conc_t_LHS = cm.NuNv;
-%     bcid_t = (~nnpk);
-%     [conc_t_LHS, conc_t_RHS] = StiffMatSetupBCID(conc_t_LHS, conc_t_RHS,bcid_t,zeros(lenu*lenv,1));
-%     conc_t_new = conc_t_LHS\conc_t_RHS;
-%     
-%     %% Actin wave model
-% %     actin_wave_prop
+%     thetaLHS = (cm.NuNv-dt_theta.*M_theta.*P2.*cm.lap);
+%     thetaRHS = (cm.NuNv*theta_cp);
+%     thetaRHS = thetaRHS - thetaLHS*theta_initial;
+%     [thetaLHS, thetaRHS] = kqStiffMatSetupBCID(thetaLHS,thetaRHS,bcid_cp);
+% 
+%     theta_cp_new = thetaLHS\thetaRHS;
+theta_cp_new = theta_cp;
 
     %% iteration update
     % update variables in this iteration
@@ -241,178 +211,57 @@ for iter=1:1:end_iter
 %     conct_cp = conct_cp_new;
 
     %% Plotting figures
-    if(mod(iter,1) == 0 || iter == 1)
+    if(mod(iter,1) ==  0 || iter == 1)
         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-
-        subplot(2,2,1);
+        E_plot = reshape(E,Nx,Ny);
+        
+        subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));
         title(sprintf('Phi plot at iter:%2d',iter));
         axis square;
         colorbar;
 
-        subplot(2,2,2);
+        subplot(2,3,2);
         displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
         title(sprintf('Mesh with %d refinements',maxlev-1));
         axis square;
 
-        subplot(2,2,3);
+        subplot(2,3,3);
         imagesc(theta_plot(2:end-1,2:end-1));
         title(sprintf('Theta plot at iter:%2d',iter));
         axis square;
         colorbar;
 
-        subplot(2,2,4);
+        subplot(2,3,4);
         imagesc(tempr_plot(2:end-1,2:end-1));
         title(sprintf('T plot at iter:%2d',iter));
         axis square;
         colorbar;
-% 
-%         subplot(2,2,1);
-%         imagesc(conct_plot);
-%         title(sprintf('Tubulin plot at iter:%2d',iter));
-%         axis square;
-%         colorbar;
+        
+        subplot(2,3,5);
+        imagesc(E_plot(2:end-1,2:end-1));
+        title(sprintf('E at iter:%2d',iter));
+        axis square;
+        colorbar;
+
+        phi_diff = reshape((NNpk-NNp),Nx,Ny); 
+        subplot(2,3,6);
+        imagesc(phi_diff);
+        title('Phi diff');
+        axis square;
+        colorbar;
 
         % plot current iteration
         drawnow;
 
-%         if(mod(iter,png_save_invl) == 0)
-            try
-                saveas(gcf,sprintf('./postprocessing/NeuronGrowth_%.2d.png',iter));
-            catch
-                fprintf('png write error skipped.\n');
-            end
-%         end
-
-%         if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
-%                 max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
-%                 max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
-%                 max(max(phi_plot(:,end-BC_tol:end))) > 0.5))
-%            
-%             disp('********************************************************************');
-%             disp('Expanding Domain...');
-% 
-%             Nx = Nx+10;
-%             Ny = Ny+10;
-% 
-%             Max_x = Max_x + 5;
-%             Max_y = Max_y + 5;            
-%                 
-%             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
-%             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
-% 
-%             lenu = length(knotvectorU)-2*(p-1);
-%             lenv = length(knotvectorV)-2*(p-1);
-% 
-%             oldNuNv = cm.NuNv;
-%             [cm, size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,...
-%                 q,order_deriv);
-%             lap = cm.N2uNv + cm.NuN2v;
-%             [lap_flip, lap_id] = extract_diags(lap);
-% 
-%             sz = length(lap);
-% 
-%             [phi,theta,theta_ori,conc_t,param,tempr,phi_initial,theta_initial,tempr_initial,bcid] ...
-%                 = kqExpandDomain_Actinwave(sz,phiK,theta_new,conc_t_new,max_x,max_y,param,...
-%                 tempr_new,oldNuNv,cm.NuNv);
-% 
-%             phiK = phi;
-% 
-%             toc
-%             disp('********************************************************************');
-%         end
+        try
+            saveas(gcf,sprintf('./postprocessing/NeuronGrowth_%.2d.png',iter));
+        catch
+            fprintf('png write error skipped.\n');
+        end
     end
-
-%     if(mod(iter,var_save_invl)==0 || iter == 0)
-%         try
-%             save(sprintf('./data/phi_on_cp_%2d',iter),'phi');
-%             save(sprintf('./data/theta_on_cp_%2d',iter),'theta');
-%             save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr');
-%             save(sprintf('./data/conct_on_cp_%2d',iter),'conc_t');
-%         catch
-%             fprintf('data write error skipped.\n');
-%         end
-%     end
-
-%     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
-% 
-%     if (iter < iter_stage2_begin)
-%         max_x = floor(lenu/2);
-%         max_y = floor(lenv/2);
-% 
-%     elseif (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
-%             tip = sum_filter(full(phi_plot),0);
-%             regionalMaxima = imregionalmax(full(tip));
-%             [Max_y,Max_x] = find(regionalMaxima);
-%             size_Max = length(Max_x);
-%             X_dist = Max_x-lenu/2+1e-6;
-%             Y_dist = Max_y-lenu/2+1e-6;
-%             initial_angle = atan2(X_dist,Y_dist).';
-%             
-%             [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
-%             if(mod(iter,50) == 0)
-%                 subplot(2,2,3);
-%                 imagesc(theta_ori);
-%                 title(sprintf('Phi at iteration = %.2d',iter));
-%                 axis square;
-%                 colorbar;
-%             end
-%     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
-% 
-%             phi_id = full(phi_plot);
-%             [Nx,Ny] = size(phi_id);
-%             phi_id = round(phi_id);
-%             phi_sum = zeros(Nx,Ny);
-% 
-%             L = bwconncomp(phi_id,4);
-%             S = regionprops(L,'Centroid');
-%             centroids = floor(cat(1,S.Centroid));
-%             
-%             ID = zeros(size(phi_id));
-%             dist= zeros(lenu,lenv,L.NumObjects);
-% 
-%             max_x = [];
-%             max_y = [];
-%             for k = 1:L.NumObjects
-%                 ID(L.PixelIdxList{k}) = k;
-%                 for i = 1:lenu
-%                     for j = 1:lenv
-%                         dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,1))^2+(j-centroids(k,2))^2);
-%                     end
-%                 end
-% 
-%                 dist_k = reshape(dist(:,:,k),lenu*lenv,1);
-%                 [max_dist,max_index] = max(dist_k);
-%                 max_x(k) = ceil(max_index/lenu);
-%                 max_y(k) = rem(max_index,lenu);
-% %                 if(iter == iter_stage3_begin)
-% %                     x_dist = max_x(k)-centroids(k,1);
-% %                     y_dist = centroids(k,2)-max_y(k);
-% %                     axon_angle = atan2(x_dist,y_dist);
-% %                     rotate = axon_angle;
-% %                 end
-% 
-% %                 if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
-% %                     Rot = rand*pi/2-pi/4;
-% %                     rotate_intv = Rot/rot_iter_invl;
-% %                 end
-% % 
-% %                 theta_ori(k) = theta_rotate_guide_sector(centroids(k,1),centroids(k,2),max_x(k),max_y(k),rotate(k));
-% %                 rotate(k) = rotate(k) + rotate_intv;
-%             end
-%             size_Max = length(max_x);
-%             [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,1,size_Max);
-%             
-%             if(mod(iter,50) == 0)
-%                 subplot(2,2,3);
-%                 imagesc(theta_ori);
-%                 title(sprintf('Phi at iteration = %.2d',iter));
-%                 axis square;
-%                 colorbar;
-%             end
-%     end
 end
 
 disp('All simulations complete!\n');

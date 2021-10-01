@@ -34,7 +34,7 @@ coll_Y_array = CEb(1:coll_sz,2).';
 [coll_X,coll_Y] = meshgrid(coll_X_array,coll_Y_array);
 
 % setting bcid (dirichlet boundary condition id)
-bc_layers = 1;
+bc_layers = 2;
 [bcid,bcid_cp] = kqMakeBCID(coll_sz,bc_layers,coll_X,coll_Y,THBfinal);
 
 T_initial_cp = T_analytical_cp;
@@ -176,3 +176,19 @@ drawnow;
 % % subplot(1,3,3);
 % % plot3 = reshape(pp2,22,22);
 % % imagesc(plot3);
+
+%%
+figure;
+subplot(2,2,1);
+imagesc(reshape(cm.NuNv*phi_cp,Nx,Ny));
+title('phi');
+colorbar;
+subplot(2,2,2);
+imagesc(reshape(cm.N1uNv*phi_cp,Nx,Ny));
+title('N1uNv*phi');
+colorbar;
+subplot(2,2,3);
+lapP = reshape(cm.lap*phi_cp,Nx,Ny);
+imagesc(lapP);
+title('lap*phi');
+colorbar;

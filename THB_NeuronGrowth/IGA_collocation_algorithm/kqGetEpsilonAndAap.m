@@ -1,4 +1,4 @@
-function [epsilon_cp, epsilon_deriv_cp, aap_cp, P_dy, P_dx] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,theta,NuNv,NuN1v,N1uNv)
+function [epsilon_cp, epsilon_deriv_cp, aap_cp, P_dy, P_dx] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,theta_cp,NuNv,NuN1v,N1uNv)
 % kqGet_epsilon_and_aap(phi,theta,NuN1v,N1uNv) 
 % This function calculates epsilon and aap (a*a') based on phi, theta,
 % NuN1v, and N1uNv.
@@ -6,6 +6,7 @@ function [epsilon_cp, epsilon_deriv_cp, aap_cp, P_dy, P_dx] = kqGetEpsilonAndAap
 
 aniso = 6;
 
+theta = NuNv*theta_cp;
 % phi_cp = NuNv\phi_cp;
 P_dy = NuN1v*phi_cp;
 P_dx = N1uNv*phi_cp;

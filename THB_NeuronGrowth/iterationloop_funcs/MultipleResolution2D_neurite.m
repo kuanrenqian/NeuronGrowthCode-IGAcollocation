@@ -19,15 +19,15 @@ for level = parameters.maxlevel:-1:1
         
         [X,Y] = meshgrid(linspace(0,1,Nx*2^(parameters.maxlevel-level)),linspace(0,1,Ny*2^(parameters.maxlevel-level)));
     else
-%         phi_new = zeros((Nx)* 2  ,(Ny)* 2  );
+        phi_new = zeros((Nx)* 2  ,(Ny)* 2  );
         
-%         phi_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = phi;
+        phi_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = phi;
 
         Nx = Nx*2;
         Ny = Ny*2;
         NxNy = (Nx)*(Ny);
                 
-%         phi = phi_new;
+        phi = phi_new;
         
         nx = Nx;
         ny = Ny;
@@ -49,7 +49,7 @@ for level = parameters.maxlevel:-1:1
     for multilev = 0:1:maxlev-1
         if(multilev>0)
 %             grad_log = [];
-            for j =1:floor(bf_ct/8)
+            for j =1:floor(bf_ct/2)
                 bbc = bf(j,1:2);
                 bf_lev = bf(j,3);
 %                 EEM = Em{bf_lev,1};
@@ -65,13 +65,13 @@ for level = parameters.maxlevel:-1:1
 %                         grad  = grad + Cell_grad(ac_ind,1);
 %                     end
 %                 end
-                
+%                 
 %                 grad = grad/supp_ct;
-%                 grad_log(end+1) = grad;
-                %Refinement to create next level
+% %                 grad_log(end+1) = grad;
+%                 %Refinement to create next level
 %                 rho = parameters.rho(multilev+1);
 %                 if(grad>=(rho*meangrad))
-                    [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
+                    [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
 %                 end
             end
         end
@@ -112,35 +112,37 @@ for level = parameters.maxlevel:-1:1
         
         [Jm,Coeff,Pixel] = constructAdaptiveGrid(ac,parameters,Dm,Em,X,Y,knotvectorU,knotvectorV,multilev,nobU,nobV,nelemU);
         
-%         Pfinal = zeros(bf_ct,2);
-%         for i = 1:bf_ct
-%             bbc = bf(i,1:2);
-%             bf_lev = bf(i,3);
-%             bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-%             Pi = Pm{bf_lev,1};
-%             Pfinal(i,1) = Pi(bi,1);
-%             Pfinal(i,2) = Pi(bi,2);
-%         end
+        Pfinal = zeros(bf_ct,2);
+        for i = 1:bf_ct
+            bbc = bf(i,1:2);
+            bf_lev = bf(i,3);
+            bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
+            Pi = Pm{bf_lev,1};
+            Pfinal(i,1) = Pi(bi,1);
+            Pfinal(i,2) = Pi(bi,2);
+        end
         
-%         phi_cp  = interp2(X,Y,reshape(phi,Nx,Ny),Pfinal(:,2),Pfinal(:,1),'spline');
-%         phi_cp(isnan(phi_cp(:))) = 0.0;
-%         cell_co = zeros(ac_ct,2);
-%         for i = 1:ac_ct
-%             cell_id = ac(i,1);
-%             cell_le = ac(i,2);
-%             EEM = Em{cell_le,1};
-%             cell_co(i,1) = EEM{cell_id,8};
-%             cell_co(i,2) = EEM{cell_id,9};
-%         end
-%         
-%         phi_imgg = reshape(phi,Nx,Ny).*255;
-%         [phidxi, phidyi] = gradient(phi_imgg);
-%         Idiff = sqrt(phidxi.^2+phidyi.^2);
-%         Cell_grad = interp2(X,Y,Idiff,cell_co(:,2),cell_co(:,1),'spline');
-%         meangrad = mean2(Idiff);
+        phi_cp  = interp2(X,Y,reshape(phi,Nx,Ny),Pfinal(:,2),Pfinal(:,1),'spline');
+        phi_cp(isnan(phi_cp(:))) = 0.0;
+        cell_co = zeros(ac_ct,2);
+        for i = 1:ac_ct
+            cell_id = ac(i,1);
+            cell_le = ac(i,2);
+            EEM = Em{cell_le,1};
+            cell_co(i,1) = EEM{cell_id,8};
+            cell_co(i,2) = EEM{cell_id,9};
+        end
+        
+        phi_imgg = reshape(phi,Nx,Ny).*255;
+        [phidxi, phidyi] = gradient(phi_imgg);
+        Idiff = sqrt(phidxi.^2+phidyi.^2);
+        Cell_grad = interp2(X,Y,Idiff,cell_co(:,2),cell_co(:,1),'spline');
+        meangrad = mean2(Idiff);
     end
-    
-    kq_laplace_test
+
+%     if level == 1
+        kq_laplace_test
+%     end
 end
 
     

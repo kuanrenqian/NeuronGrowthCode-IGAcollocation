@@ -21,14 +21,12 @@ nelemy = parameters.nelemy-1;
 %% Knotvectors
 for lev = 1:maxlev,
     knotvectorU{lev,1} = [zeros(1,pU),linspace(0,1,nelemx*(2^(lev-1))+1),ones(1,pU)];
-%     knotvectorU{lev,1} = [zeros(1,pU),linspace(0,1,nelemx*(2^(lev-1))+1),ones(1,pU)]*40;
     uknotvectorU{lev,1} = unique(knotvectorU{lev,1});
     nelemU(lev,1) = size(uknotvectorU{lev,1},2) -1;
     kU(lev,1) = length(knotvectorU{lev,1});
     nobU(lev,1) = kU(lev,1) - pU -1;
     
-    knotvectorV{lev,1} = [zeros(1,pV),linspace(0,1,nelemy*(2^(lev-1))+1),ones(1,pV)];  
-%     knotvectorV{lev,1} = [zeros(1,pV),linspace(0,1,nelemy*(2^(lev-1))+1),ones(1,pV)]*40;
+    knotvectorV{lev,1} = [zeros(1,pV),linspace(0,1,nelemy*(2^(lev-1))+1),ones(1,pV)];
     uknotvectorV{lev,1} = unique(knotvectorV{lev,1});
     nelemV(lev,1) = size(uknotvectorV{lev,1},2) -1;
     kV(lev,1) = length(knotvectorV{lev,1});
