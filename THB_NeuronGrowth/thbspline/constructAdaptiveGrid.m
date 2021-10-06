@@ -141,8 +141,10 @@ for i = 1:size(X,1)
             SB1 = EE{cell_ind,6};
             sb_size1 = size(SB1,1);
             
-            RRD1 = dersbasisfuns3(uu,pU,2,X(j,i),kuMAX);
-            RRD2 = dersbasisfuns3(vv,pV,2,Y(j,i),kvMAX);
+            RRD1 = dersbasisfuns3(uu,pU,2,X(j,i)*40,kuMAX*40);
+            RRD2 = dersbasisfuns3(vv,pV,2,Y(j,i)*40,kvMAX*40);
+%             RRD1 = dersbasisfuns3(uu,pU,2,X(j,i),kuMAX);
+%             RRD2 = dersbasisfuns3(vv,pV,2,Y(j,i),kvMAX);
 
             RRD = (RRD1(1,:)')*(RRD2(1,:));
             RRDU = (RRD1(1,:)')*(RRD2(2,:));
@@ -201,8 +203,10 @@ for i = 1:size(X,1)
                     SB1 = EE{cell_ind,6};
                     sb_size1 = size(SB1,1);
 
-                    RRD1 = dersbasisfuns3(u1,pU,2,X(j,i),knotuu);
-                    RRD2 = dersbasisfuns3(v1,pV,2,Y(j,i),knotvv);
+                    RRD1 = dersbasisfuns3(u1,pU,2,X(j,i)*40,knotuu*40);
+                    RRD2 = dersbasisfuns3(v1,pV,2,Y(j,i)*40,knotvv*40);
+%                     RRD1 = dersbasisfuns3(uu,pU,2,X(j,i),kuMAX);
+%                     RRD2 = dersbasisfuns3(vv,pV,2,Y(j,i),kvMAX);
 
                     RRD = (RRD1(1,:)')*(RRD2(1,:));
                     RRDU = (RRD1(1,:)')*(RRD2(2,:));

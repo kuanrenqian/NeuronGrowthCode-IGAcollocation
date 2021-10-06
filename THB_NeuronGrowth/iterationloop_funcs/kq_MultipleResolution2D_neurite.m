@@ -25,9 +25,10 @@ for level = parameters.maxlevel:-1:1
 %                 if(rf_cp(j)~=0) % laplacian of phi
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
+%                     [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
                     [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-                end
-%             end
+%                 end
+            end
         end
         
         ac_ct = 0;
@@ -82,12 +83,12 @@ for level = parameters.maxlevel:-1:1
     rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
     rf_cp(isnan(rf_cp(:))) = 0;
 
-    if level == 1 % second level, 1 local refinement
+    %if level == 1 % second level, 1 local refinement
         figure;
         displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
         title(sprintf('Mesh with %d refinements',maxlev-1));
         axis square;
         drawnow;
         kq_iterationloop_neurite
-    end
+    %end
 end

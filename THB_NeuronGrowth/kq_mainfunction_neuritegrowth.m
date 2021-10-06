@@ -20,7 +20,7 @@ warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
-dtime = 1e-3;
+dtime = 5e-3;
 end_iter = 35000;
 
 % tolerance for NR method
@@ -28,13 +28,12 @@ tol = 1e-3;
 
 % neuron growth variables
 aniso = 6;
-% kappa= 4;
-kappa= 2;
+kappa= 4;
 alph = 0.9; % changing name to alph cause alpha is a function
 pix=4.0*atan(1.0);
 gamma = 15.0;
 tau = 0.3;
-M_phi = 30;
+M_phi = 60;
 M_theta = 0.5*M_phi;
 s_coeff = 0.007;
 
@@ -49,7 +48,7 @@ Diff = 4;
 source_coeff = 0.05;
 
 % Seed size
-seed_radius = 5;
+seed_radius = 10;
 
 % Expanding domain parameters
 BC_tol = 10;

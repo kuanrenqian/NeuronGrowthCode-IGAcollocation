@@ -46,6 +46,30 @@ theta_cp  = rand([len_cp,1]);
 tempr_cp = zeros(len_cp,1);
 theta_ori_cp = zeros(len_cp,1);
 
+% phi_cp = cm.NuNv\phi;
+% theta_cp = cm.NuNv\rand(size(phi));
+% tempr_cp = cm.NuNv\zeros(size(phi));
+
+
+%%
+figure;
+subplot(2,2,1);
+NNphi = reshape(cm.NuNv*phi_cp,Nx,Nx);
+imagesc(NNphi);
+colorbar;
+subplot(2,2,2);
+N1Nphi = reshape(cm.N1uNv*phi_cp,Nx,Nx);
+imagesc(N1Nphi);
+colorbar;
+subplot(2,2,3);
+N2Nphi = reshape(cm.N2uNv*phi_cp,Nx,Nx);
+imagesc(N2Nphi);
+colorbar;
+subplot(2,2,4);
+lapphi = reshape(cm.lap*phi_cp,Nx,Nx);
+imagesc(lapphi);
+colorbar;
+
 %% debug test
 % figure;
 % subplot(2,2,1);
@@ -78,14 +102,12 @@ for iter=1:1:end_iter
     toc
 
     % de-coupling theta (debug)
-    theta_cp = rand(size(theta_cp));
     % calculating a and a*a' (aap) in the equation using theta and phi
     [a_cp, ~, aap_cp,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,cm.NuNv*theta_cp,cm.NuNv,cm.NuN1v,cm.N1uNv);
 
     % run with simple E calculation
     tempr = cm.NuNv*tempr_cp;
     E = (alph./pix).*atan(gamma.*(1-tempr));
-
 %     if(iter<=iter_stage2_begin)
 %         E = (alph./pix).*atan(gamma.*(1-tempr));
 %     else
@@ -179,12 +201,12 @@ for iter=1:1:end_iter
         dt_t = dt_t+dtime;
     end
 
-    dt_tempr = dtime/10;
+    dt_tempr = dtime;
     dt_theta = dtime;
 
     %% Temperature (Implicit method)
     temprLHS = cm.NuNv;
-    temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));  %cm.NuNv\phiK
+    temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));
     temprRHS = temprRHS - temprLHS*tempr_initial;
     [temprLHS, temprRHS] = kqStiffMatSetupBCID(temprLHS,temprRHS,bcid_cp);
 
@@ -206,16 +228,16 @@ theta_cp_new = theta_cp;
     %% iteration update
     % update variables in this iteration
     phi_cp = phiK_cp;
-    theta_cp = theta_cp_new;
+%     theta_cp = theta_cp_new;
     tempr_cp = tempr_cp_new;
 %     conct_cp = conct_cp_new;
 
     %% Plotting figures
-    if(mod(iter,1) ==  0 || iter == 1)
+    if(mod(iter,10) ==  0 || iter == 1)
         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-        E_plot = reshape(E,Nx,Ny);
+            E_plot = reshape(E,Nx,Ny);
         
         subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));
