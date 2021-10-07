@@ -10,9 +10,16 @@ for level = parameters.maxlevel:-1:1
     disp(['Registration level:' num2str(parameters.maxlevel-level+1)]);
     
     %% Meshgrid for later use (will be used to change size in the future)
-    nx = Nx;
-    ny = Ny;
-    [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
+    if(level==parameters.maxlevel)
+        nx = Nx;
+        ny = Ny;
+        [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
+    else
+        Nx = Nx*2;
+        Ny = Ny*2;
+        
+        [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
+    end
 
     %% Construct B-spline grid
     maxlev = parameters.maxlevel-level+1;
@@ -21,7 +28,7 @@ for level = parameters.maxlevel:-1:1
     for multilev = 0:1:maxlev-1
         if(multilev>0)
             % local refinement based on laplacian of phi
-            for j =1:floor(bf_ct/2)
+            for j =1:floor(bf_ct)
 %                 if(rf_cp(j)~=0) % laplacian of phi
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
@@ -70,25 +77,25 @@ for level = parameters.maxlevel:-1:1
         
     % rf_cp is purely for refinement, actual phi is initialized on locally
     % refined points
-    Pfinal = zeros(bf_ct,2);
-    for i = 1:bf_ct
-        bbc = bf(i,1:2);
-        bf_lev = bf(i,3);
-        bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-        Pi = Pm{bf_lev,1};
-        Pfinal(i,1) = Pi(bi,1);
-        Pfinal(i,2) = Pi(bi,2);
-    end
-    [LAP] = del2(reshape(phi,Nx,Ny));
-    rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
-    rf_cp(isnan(rf_cp(:))) = 0;
+%     Pfinal = zeros(bf_ct,2);
+%     for i = 1:bf_ct
+%         bbc = bf(i,1:2);
+%         bf_lev = bf(i,3);
+%         bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
+%         Pi = Pm{bf_lev,1};
+%         Pfinal(i,1) = Pi(bi,1);
+%         Pfinal(i,2) = Pi(bi,2);
+%     end
+%     [LAP] = del2(reshape(phi,Nx,Ny));
+%     rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
+%     rf_cp(isnan(rf_cp(:))) = 0;
 
-    %if level == 1 % second level, 1 local refinement
-        figure;
-        displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
-        title(sprintf('Mesh with %d refinements',maxlev-1));
-        axis square;
-        drawnow;
+    if level == 1 % second level, 1 local refinement
+%         figure;
+%         displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
+%         title(sprintf('Mesh with %d refinements',maxlev-1));
+%         axis square;
+%         drawnow;
         kq_iterationloop_neurite
-    %end
+    end
 end

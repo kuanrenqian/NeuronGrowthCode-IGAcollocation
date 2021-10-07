@@ -21,6 +21,7 @@ warning('off',warn_id)
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
 dtime = 5e-3;
+dtime = 5e-4;
 end_iter = 35000;
 
 % tolerance for NR method
@@ -48,7 +49,7 @@ Diff = 4;
 source_coeff = 0.05;
 
 % Seed size
-seed_radius = 10;
+seed_radius = 5;
 
 % Expanding domain parameters
 BC_tol = 10;
@@ -57,8 +58,8 @@ expd_coef = 1.2;
 disp('Simulation parameters initialization done!');
 
 %% Domain Setup
-Nx = 40;
-Ny = 40;
+Nx = 20;
+Ny = 20;
 dx = 1/Nx;
 dy = 1/Ny;
 

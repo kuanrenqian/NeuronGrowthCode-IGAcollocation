@@ -28,6 +28,7 @@ end
 % setting bcid (dirichlet boundary condition id)
 bc_layers = 1;
 [bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,cp_X,cp_Y,THBfinal);
+% [bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,coll_X,coll_Y,THBfinal);
 
 % initializing phi, theta, and temperature on locally refined points
 len_cp = length(THBfinal);
@@ -36,6 +37,7 @@ conct_cp = zeros(len_cp,1);
 for i = 1:len_cp
     x = THBfinal(i,1);
     y = THBfinal(i,2);
+%     if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
     if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
         r = sqrt((x-0.5)^2+(y-0.5)^2);
         phi_cp(i) = 1;
@@ -53,19 +55,23 @@ theta_ori_cp = zeros(len_cp,1);
 
 %%
 figure;
-subplot(2,2,1);
+subplot(2,3,1);
+displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
+title(sprintf('Mesh with %d refinements',maxlev-1));
+axis square;
+subplot(2,3,2);
 NNphi = reshape(cm.NuNv*phi_cp,Nx,Nx);
 imagesc(NNphi);
 colorbar;
-subplot(2,2,2);
+subplot(2,3,3);
 N1Nphi = reshape(cm.N1uNv*phi_cp,Nx,Nx);
 imagesc(N1Nphi);
 colorbar;
-subplot(2,2,3);
+subplot(2,3,4);
 N2Nphi = reshape(cm.N2uNv*phi_cp,Nx,Nx);
 imagesc(N2Nphi);
 colorbar;
-subplot(2,2,4);
+subplot(2,3,5);
 lapphi = reshape(cm.lap*phi_cp,Nx,Nx);
 imagesc(lapphi);
 colorbar;
@@ -83,6 +89,9 @@ colorbar;
 % imagesc(lapP);
 % colorbar;
 
+figure;
+% scatter3(THBfinal(:,1),THBfinal(:,2),phi_cp,20,phi_cp,'filled');
+scatter(THBfinal(:,1),THBfinal(:,2));
 %%
 phi_initial = zeros(size(phi_cp));
 theta_initial  = theta_cp;
@@ -241,6 +250,7 @@ theta_cp_new = theta_cp;
         
         subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));
+%         scatter3(THBfinal(:,1),THBfinal(:,2),phiK_cp,20,phiK_cp,'filled');
         title(sprintf('Phi plot at iter:%2d',iter));
         axis square;
         colorbar;
