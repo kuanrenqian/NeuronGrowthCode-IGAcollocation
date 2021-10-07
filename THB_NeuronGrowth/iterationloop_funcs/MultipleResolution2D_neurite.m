@@ -33,12 +33,6 @@ for level = parameters.maxlevel:-1:1
         ny = Ny;
 
        [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
-        if(level==2)
-            nstep = 1;
-        end
-        if(level==1)
-            nstep=1;
-        end
     end
     
     
@@ -52,27 +46,7 @@ for level = parameters.maxlevel:-1:1
             for j =1:floor(bf_ct/2)
                 bbc = bf(j,1:2);
                 bf_lev = bf(j,3);
-%                 EEM = Em{bf_lev,1};
-%                 BEM = Dm{bf_lev,1};
-%                 bind = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-%                 supp_cells = BEM{bind,6};
-%                 grad = 0;
-%                 supp_ct = 0;
-%                 for i =1:size(supp_cells,2)
-%                     if(supp_cells(1,i)~=0)
-%                         supp_ct = supp_ct + 1;
-%                         ac_ind = EEM{supp_cells(1,i),11};
-%                         grad  = grad + Cell_grad(ac_ind,1);
-%                     end
-%                 end
-%                 
-%                 grad = grad/supp_ct;
-% %                 grad_log(end+1) = grad;
-%                 %Refinement to create next level
-%                 rho = parameters.rho(multilev+1);
-%                 if(grad>=(rho*meangrad))
-                    [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-%                 end
+                [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
             end
         end
         
@@ -140,9 +114,7 @@ for level = parameters.maxlevel:-1:1
         meangrad = mean2(Idiff);
     end
 
-%     if level == 1
-        kq_laplace_test
-%     end
+    kq_laplace_test
 end
 
     

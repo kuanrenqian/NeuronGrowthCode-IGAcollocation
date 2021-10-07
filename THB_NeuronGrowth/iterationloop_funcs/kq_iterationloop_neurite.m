@@ -37,7 +37,6 @@ conct_cp = zeros(len_cp,1);
 for i = 1:len_cp
     x = THBfinal(i,1);
     y = THBfinal(i,2);
-%     if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
     if (sqrt((x-0.5)^2+(y-0.5)^2) < seed_radius*dx)
         r = sqrt((x-0.5)^2+(y-0.5)^2);
         phi_cp(i) = 1;

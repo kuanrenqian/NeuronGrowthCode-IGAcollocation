@@ -4,7 +4,7 @@ rho(1,1) = 5;
 rho(2,1) = 10;
 rho(3,1) = 20;
 
-maxlevel = 2;
+maxlevel = 3;
 
 nelemx = Nx;
 nelemy = Ny;
