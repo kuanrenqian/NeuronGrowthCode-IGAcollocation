@@ -20,8 +20,8 @@ warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
-dtime = 5e-3;
-dtime = 5e-4;
+% dtime = 5e-3;
+dtime = 5e-5;
 end_iter = 35000;
 
 % tolerance for NR method

@@ -15,6 +15,10 @@ for level = parameters.maxlevel:-1:1
         ny = Ny;
         [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
     else
+        phi_new = zeros((Nx)* 2  ,(Ny)* 2  );
+        phi_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = reshape(phi,Nx,Ny);
+        phi = phi_new;
+
         Nx = Nx*2;
         Ny = Ny*2;
         
@@ -29,12 +33,12 @@ for level = parameters.maxlevel:-1:1
         if(multilev>0)
             % local refinement based on laplacian of phi
             for j =1:floor(bf_ct)
-%                 if(rf_cp(j)~=0) % laplacian of phi
+                if(rf_cp(j)~=0) % laplacian of phi
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
 %                     [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
                     [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-%                 end
+                end
             end
         end
         
@@ -73,22 +77,24 @@ for level = parameters.maxlevel:-1:1
         end
  
         [Jm,Coeff,Pixel] = constructAdaptiveGrid(ac,parameters,Dm,Em,X,Y,knotvectorU,knotvectorV,multilev,nobU,nobV,nelemU);
+   
+        % rf_cp is purely for refinement, actual phi is initialized on locally
+        % refined points
+        Pfinal = zeros(bf_ct,2);
+        for i = 1:bf_ct
+            bbc = bf(i,1:2);
+            bf_lev = bf(i,3);
+            bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
+            Pi = Pm{bf_lev,1};
+            Pfinal(i,1) = Pi(bi,1);
+            Pfinal(i,2) = Pi(bi,2);
+        end
+
+        [LAP] = del2(reshape(phi,Nx,Ny));
+        rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
+        rf_cp(isnan(rf_cp(:))) = 0;
+
     end
-        
-    % rf_cp is purely for refinement, actual phi is initialized on locally
-    % refined points
-%     Pfinal = zeros(bf_ct,2);
-%     for i = 1:bf_ct
-%         bbc = bf(i,1:2);
-%         bf_lev = bf(i,3);
-%         bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-%         Pi = Pm{bf_lev,1};
-%         Pfinal(i,1) = Pi(bi,1);
-%         Pfinal(i,2) = Pi(bi,2);
-%     end
-%     [LAP] = del2(reshape(phi,Nx,Ny));
-%     rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
-%     rf_cp(isnan(rf_cp(:))) = 0;
 
     if level == 1 % second level, 1 local refinement
 %         figure;
