@@ -33,6 +33,17 @@ coll_X_array = CEb(1:coll_sz,2).';
 coll_Y_array = CEb(1:coll_sz,2).';
 [coll_X,coll_Y] = meshgrid(coll_X_array,coll_Y_array);
 
+% getting active coordinates
+ac_len = length(ac);
+ac_x = zeros(ac_len,1);
+ac_y = zeros(ac_len,1);
+for i = 1:ac_len
+    ac_level = ac(i,2);
+    ac_indx = ac(i,1);
+    ac_x(i) = cell2mat(Em{ac_level}(ac_indx,8));
+    ac_y(i) = cell2mat(Em{ac_level}(ac_indx,9));
+end
+
 % setting bcid (dirichlet boundary condition id)
 bc_layers = 2;
 [bcid,bcid_cp] = kqMakeBCID(coll_sz,bc_layers,coll_X,coll_Y,THBfinal);
@@ -41,12 +52,14 @@ T_initial_cp = T_analytical_cp;
 T_initial_cp(bcid_cp==0) = 0;
 
 % solving linear sustem
-RHS = -cm.lap*(T_initial_cp);
-[LHS, c] = kqStiffMatSetupBCID(cm.lap,RHS,bcid_cp);
-T_sol = LHS\(RHS);
+[lhs, rhs] = kqLaplaceStiffMatSetupBCID(cm.lap,T_initial_cp,bcid_cp);
+
+T_sol = lhs\rhs;
 
 % interpolate from locally refined points to structured grid for plotting
-T_sol_plot  = griddata(THBfinal(:,1),THBfinal(:,2),T_sol,coll_X,coll_Y);
+x_sol = THBfinal(bcid_cp==0,1);
+y_sol = THBfinal(bcid_cp==0,2);
+T_sol_plot  = griddata(x_sol,y_sol,T_sol,coll_X,coll_Y);
 T_ana_plot  = griddata(THBfinal(:,1),THBfinal(:,2),T_analytical_cp,coll_X,coll_Y);
 
 %% Plot all figures

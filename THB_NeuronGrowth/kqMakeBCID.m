@@ -20,6 +20,5 @@ bcid_cp = round(bcid_cp);
 %         bcid_cp(i) = 1;
 %     end
 % end
-% 
 
 end

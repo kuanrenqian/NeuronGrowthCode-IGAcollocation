@@ -1,4 +1,4 @@
-function [Dm,Pm,Em,Bvect,knotvectorU,knotvectorV,nobU,nobV,nelemU] = setBsplineGrid(maxlev,parameters,Nx,Ny,dx,dy)
+function [Dm,Pm,Em,Bvect,knotvectorU,knotvectorV,nobU,nobV,nelemU] = setBsplineGrid(maxlev,parameters,Nx,Ny)
 
 CP = cell(maxlev,1);
 
@@ -76,6 +76,7 @@ for lev = 1:maxlev,
                     xind = nelemU(lev,1);
                 end
                 i = 1;
+%                 E
                 EEN{E,1} = E;
                 
                 connectU(1,1) = intU;

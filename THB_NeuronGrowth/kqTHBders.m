@@ -8,6 +8,9 @@ N2uNv = [];
 NuN2v = [];
 lap = [];
 
+ac_ind_log = [];
+BB_act_log = [];
+
 [M,~] = size(Pixel);
 Nx = sqrt(M);
 Ny = Nx;
@@ -17,7 +20,8 @@ for i = 1:Nx
     for j = 1:Ny
         px = px +1;
         ac_ind = Pixel{px,1};
-        
+        ac_ind_log(end+1) = ac_ind;
+
         supp = Pixel{px,2};
         suppx = Pixel{px,3};
         suppy = Pixel{px,4};
@@ -31,7 +35,8 @@ for i = 1:Nx
             CEb = Pm{SB(k,2),1};
             BB = Dm{SB(k,2),1};
             BB_active = BB{SB(k,1),10};
-            
+            BB_act_log(end+1) = BB_active;
+
 %             NuNv(px,BB_active) = supp(k,1);
 %             N1uNv(px,BB_active) = suppx(k,1);
 %             NuN1v(px,BB_active) = suppy(k,1);
@@ -53,5 +58,5 @@ for i = 1:Nx
 end
 
 colmats = struct('NuNv',NuNv,'N1uNv',N1uNv,'NuN1v',NuN1v,'N1uN1v', N1uN1v, ... 
-    'N2uNv',N2uNv,'NuN2v',NuN2v,'lap',lap);
+    'N2uNv',N2uNv,'NuN2v',NuN2v,'lap',lap,'BB_act_log',BB_act_log);
     

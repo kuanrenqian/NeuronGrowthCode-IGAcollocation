@@ -26,9 +26,8 @@ for i = 1:bf_ct
 end
 
 % setting bcid (dirichlet boundary condition id)
-bc_layers = 1;
+bc_layers = 5;
 [bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,cp_X,cp_Y,THBfinal);
-% [bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,coll_X,coll_Y,THBfinal);
 
 % initializing phi, theta, and temperature on locally refined points
 len_cp = length(THBfinal);
@@ -47,50 +46,36 @@ theta_cp  = rand([len_cp,1]);
 tempr_cp = zeros(len_cp,1);
 theta_ori_cp = zeros(len_cp,1);
 
-% phi_cp = cm.NuNv\phi;
-% theta_cp = cm.NuNv\rand(size(phi));
-% tempr_cp = cm.NuNv\zeros(size(phi));
+%% debug test
+ac_len = length(ac);
+ac_x = zeros(ac_len,1);
+ac_y = zeros(ac_len,1);
+for i = 1:ac_len
+    ac_level = ac(i,2);
+    ac_indx = ac(i,1);
+    ac_x(i) = cell2mat(Em{ac_level}(ac_indx,8));
+    ac_y(i) = cell2mat(Em{ac_level}(ac_indx,9));
+end
 
-
-%%
 figure;
-subplot(2,3,1);
+subplot(2,2,1);
 displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
 title(sprintf('Mesh with %d refinements',maxlev-1));
 axis square;
-subplot(2,3,2);
-NNphi = reshape(cm.NuNv*phi_cp,Nx,Nx);
-imagesc(NNphi);
+subplot(2,2,2);
+NNp_plot = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
+imagesc(NNp_plot);
 colorbar;
-subplot(2,3,3);
-N1Nphi = reshape(cm.N1uNv*phi_cp,Nx,Nx);
-imagesc(N1Nphi);
+subplot(2,2,3);
+N1Np_plot = griddata(ac_x,ac_y,cm.N1uNv*phi_cp,cp_X,cp_Y);
+imagesc(N1Np_plot);
 colorbar;
-subplot(2,3,4);
-N2Nphi = reshape(cm.N2uNv*phi_cp,Nx,Nx);
-imagesc(N2Nphi);
+subplot(2,2,4);
+Lapp_plot = griddata(ac_x,ac_y,cm.lap*phi_cp,cp_X,cp_Y);
+imagesc(Lapp_plot);
 colorbar;
-subplot(2,3,5);
-lapphi = reshape(cm.lap*phi_cp,Nx,Nx);
-imagesc(lapphi);
-colorbar;
+drawnow;
 
-%% debug test
-% figure;
-% subplot(2,2,1);
-% imagesc(reshape(cm.NuNv*phi_cp,Nx,Ny));
-% colorbar;
-% subplot(2,2,2);
-% imagesc(reshape(cm.N1uNv*phi_cp,Nx,Ny));
-% colorbar;
-% subplot(2,2,3);
-% lapP = reshape(cm.lap*phi_cp,Nx,Ny);
-% imagesc(lapP);
-% colorbar;
-
-figure;
-% scatter3(THBfinal(:,1),THBfinal(:,2),phi_cp,20,phi_cp,'filled');
-scatter(THBfinal(:,1),THBfinal(:,2));
 %%
 phi_initial = zeros(size(phi_cp));
 theta_initial  = theta_cp;
@@ -101,7 +86,10 @@ disp('********************************************************************');
 
 kq_growth_stage_var_initialization
 
+tempr_cp_new = tempr_cp;
+
 figure;
+set(gcf,'position',[50,50,900,700]);
 tic
 % transient iterations
 for iter=1:1:end_iter
@@ -183,9 +171,9 @@ for iter=1:1:end_iter
             t5 =  2*NNa.*N1Na.*cm.N1uNv+NNa.^2.*cm.lap+ 2*NNa.*NN1a.*cm.NuN1v;
         end
         % termNL_deriv
-        temp = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
+        nl_term = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
 %         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
-        t6 = temp.*cm.NuNv;
+        t6 = nl_term.*cm.NuNv;
 
         R = M_phi/tau*(out{1}-out{2}+out{3}+out{4});
         R = R*dtime-NNpk+NNp;
@@ -194,14 +182,15 @@ for iter=1:1:end_iter
 
         %%
         % check residual and update guess
-        R = R - dR*phi_initial;
-        [dR, R] = kqStiffMatSetupBCID(dR,R,bcid_cp);
+%         R = R - dR*phi_initial;
+%         [dR, R] = kqStiffMatSetupBCID(dR,R,bcid_cp);
+        [dR, R] = kqNGStiffMatSetupBCID(dR,R,phi_initial,bcid_cp);
 
         dp = dR\(-R);
-        phiK_cp = phiK_cp + dp;
+        phiK_cp(bcid_cp==0) = phiK_cp(bcid_cp==0) + dp;
 
         max_phi_R = full(max(abs(R)));
-        fprintf('Phi NR Iter: %.2d -> max residual: %.2d\n',ind_check, max_phi_R);
+        fprintf('Phi NR Iter: %.2d -> max residual: %.6d\n',ind_check, max_phi_R);
         if (ind_check >= 100 || max(abs(R))>1e20)
             error('Phi NR method NOT converging!-Max residual: %.2d\n',max_phi_R);
         end
@@ -215,10 +204,12 @@ for iter=1:1:end_iter
     %% Temperature (Implicit method)
     temprLHS = cm.NuNv;
     temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));
-    temprRHS = temprRHS - temprLHS*tempr_initial;
-    [temprLHS, temprRHS] = kqStiffMatSetupBCID(temprLHS,temprRHS,bcid_cp);
+%     temprRHS = temprRHS - temprLHS*tempr_initial;
+%     [temprLHS, temprRHS] = kqStiffMatSetupBCID(temprLHS,temprRHS,bcid_cp);
+    [temprLHS, temprRHS] = kqNGStiffMatSetupBCID(temprLHS,temprRHS,tempr_initial,bcid_cp);
 
-    tempr_cp_new = temprLHS\temprRHS;
+    tempr_sol = temprLHS\temprRHS;
+    tempr_cp_new(bcid_cp==0) = tempr_sol;
 
     %% Theta (Implicit method)
 % %     lap_theta = cm.lap*theta_cp;
@@ -241,15 +232,19 @@ theta_cp_new = theta_cp;
 %     conct_cp = conct_cp_new;
 
     %% Plotting figures
-    if(mod(iter,10) ==  0 || iter == 1)
-        phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
-        theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
-        tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-            E_plot = reshape(E,Nx,Ny);
+    if(mod(iter,25) ==  0 || iter == 1)
+%         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
+%         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
+%         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
+%         E_plot = reshape(E,Nx,Ny);
         
+        phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
+        theta_plot  = griddata(ac_x,ac_y,cm.NuNv*theta_cp_new,cp_X,cp_Y);
+        tempr_plot  = griddata(ac_x,ac_y,cm.NuNv*tempr_cp_new,cp_X,cp_Y);
+        E_plot  = griddata(ac_x,ac_y,E,cp_X,cp_Y);
+
         subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));
-%         scatter3(THBfinal(:,1),THBfinal(:,2),phiK_cp,20,phiK_cp,'filled');
         title(sprintf('Phi plot at iter:%2d',iter));
         axis square;
         colorbar;
@@ -277,12 +272,12 @@ theta_cp_new = theta_cp;
         axis square;
         colorbar;
 
-        phi_diff = reshape((NNpk-NNp),Nx,Ny); 
-        subplot(2,3,6);
-        imagesc(phi_diff);
-        title('Phi diff');
-        axis square;
-        colorbar;
+%         phi_diff = reshape((NNpk-NNp),38,38); 
+%         subplot(2,3,6);
+%         imagesc(phi_diff);
+%         title('Phi diff');
+%         axis square;
+%         colorbar;
 
         % plot current iteration
         drawnow;
@@ -296,3 +291,11 @@ theta_cp_new = theta_cp;
 end
 
 disp('All simulations complete!\n');
+
+%%
+figure;
+phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phiK_cp,cp_X,cp_Y);
+imagesc(phi_plot);
+title(sprintf('Phi plot at iter:%2d',iter));
+axis square;
+colorbar;

@@ -77,8 +77,9 @@ for i = 1:ac_ct
     x = [x1, x2, x2, x1, x1];
     y = [y1, y1, y2, y2, y1];
     
-    plot(x,y,'-','color','black','MarkerEdgeColor','k')
-%     axis([0 nx 0 ny])
+%     plot(x,y,'-','color','black','MarkerEdgeColor','k')
+    plot(40*x,40*y,'-','color','black','MarkerEdgeColor','k')
+    axis([0 40 0 40])
 %     set(gca,'position',[0 0 1 1],'units','normalized')
     hold on;
     CF{i,1} = cfx;

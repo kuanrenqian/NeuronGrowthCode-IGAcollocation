@@ -15,26 +15,34 @@ for level = parameters.maxlevel:-1:1
         ny = Ny;
         [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
     else
-        nx = Nx*2;
-        ny = Ny*2;
+        toBeRefned_new = zeros((Nx)* 2  ,(Ny)* 2  );
+        toBeRefned_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = toBeRefned;
+        toBeRefned = toBeRefned_new;
+
+%         phi_new = zeros((Nx)* 2  ,(Ny)* 2  );
+%         phi_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = phi;
+%         phi = phi_new;
+
+        Nx = Nx*2;
+        Ny = Ny*2;
         
-        [X,Y] = meshgrid(dx:dx:(dx*Nx),dy:dy:(Ny)*dy);
+        [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
     end
 
     %% Construct B-spline grid
     maxlev = parameters.maxlevel-level+1;
-    [Dm,Pm,Em,Bvect,knotvectorU,knotvectorV,nobU,nobV,nelemU] = setBsplineGrid(maxlev,parameters,Nx,Ny,dx,dy);
+    [Dm,Pm,Em,Bvect,knotvectorU,knotvectorV,nobU,nobV,nelemU] = setBsplineGrid(maxlev,parameters,Nx,Ny);
     
     for multilev = 0:1:maxlev-1
         if(multilev>0)
             % local refinement based on laplacian of phi
-            for j =1:floor(bf_ct/2)
-%                 if(rf_cp(j)~=0) % laplacian of phi
+            for j =floor(bf_ct/4):floor(3*bf_ct/4)
+                if(rf_cp(j)>0)
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
-%                     [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-                    [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-%                 end
+                    [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
+%                     [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
+                end
             end
         end
         
@@ -86,16 +94,11 @@ for level = parameters.maxlevel:-1:1
         Pfinal(i,1) = Pi(bi,1);
         Pfinal(i,2) = Pi(bi,2);
     end
-    [LAP] = del2(reshape(phi,Nx,Ny));
-    rf_cp  = interp2(X,Y,LAP,Pfinal(:,2),Pfinal(:,1));
+
+    rf_cp  = interp2(X,Y,toBeRefned,Pfinal(:,2),Pfinal(:,1));
     rf_cp(isnan(rf_cp(:))) = 0;
 
     if level == 1 % second level, 1 local refinement
-%         figure;
-%         displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
-%         title(sprintf('Mesh with %d refinements',maxlev-1));
-%         axis square;
-%         drawnow;
         kq_iterationloop_neurite
     end
 end

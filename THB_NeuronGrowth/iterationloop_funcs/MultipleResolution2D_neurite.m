@@ -43,7 +43,7 @@ for level = parameters.maxlevel:-1:1
     for multilev = 0:1:maxlev-1
         if(multilev>0)
 %             grad_log = [];
-            for j =1:floor(bf_ct/2)
+            for j =1:floor(bf_ct/3)
                 bbc = bf(j,1:2);
                 bf_lev = bf(j,3);
                 [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);

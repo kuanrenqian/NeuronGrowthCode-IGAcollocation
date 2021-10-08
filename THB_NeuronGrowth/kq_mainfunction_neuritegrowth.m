@@ -12,19 +12,21 @@ rngSeed = rng('shuffle');
 save('./postprocessing/rngSeed','rngSeed');
 
 % suppress griddata warning (plotting dup points warning)
-% warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
+warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
+warning('off',warn_id)
 
 % suppress rankDeficient warning (rows of zero in matrix)
-warn_id = 'MATLAB:rankDeficientMatrix'; 
-warning('off',warn_id)
+% warn_id = 'MATLAB:rankDeficientMatrix'; 
+% warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
-dtime = 5e-3;
+% dtime = 5e-3;
+dtime = 1e-4;
 end_iter = 35000;
 
 % tolerance for NR method
-tol = 1e-3;
+tol = 1e-4;
 
 % neuron growth variables
 aniso = 6;
@@ -59,14 +61,21 @@ disp('Simulation parameters initialization done!');
 %% Domain Setup
 Nx = 20;
 Ny = 20;
-dx = 1/Nx;
-dy = 1/Ny;
+dx = 1/40;
+dy = 1/40;
 
 parameters = setparameters_neurite(Nx,Ny);
+% [phi,conct] = kqInitializeNeuriteGrowth(seed_radius,Nx);
 
-% this initialization is purely for local refinement, actual phi is
-% initialized in iteration_loop
-[phi,conct] = kqInitializeNeuriteGrowth(seed_radius,Nx);
+toBeRefned = zeros(Nx,Ny);
+for i = 1:Nx
+    for j = 1:Ny
+        if (sqrt((i-Nx/2)^2+(j-Ny/2)^2) <= 5+1)
+%                 && (sqrt((i-Nx/2)^2+(j-Ny/2)^2) >= 8-1)
+            toBeRefned(i,j) = 1;
+        end
+    end
+end
 
 %%
 tic
