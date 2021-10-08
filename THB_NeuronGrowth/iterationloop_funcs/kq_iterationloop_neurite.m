@@ -57,24 +57,24 @@ for i = 1:ac_len
     ac_y(i) = cell2mat(Em{ac_level}(ac_indx,9));
 end
 
-figure;
-subplot(2,2,1);
-displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
-title(sprintf('Mesh with %d refinements',maxlev-1));
-axis square;
-subplot(2,2,2);
-NNp_plot = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
-imagesc(NNp_plot);
-colorbar;
-subplot(2,2,3);
-N1Np_plot = griddata(ac_x,ac_y,cm.N1uNv*phi_cp,cp_X,cp_Y);
-imagesc(N1Np_plot);
-colorbar;
-subplot(2,2,4);
-Lapp_plot = griddata(ac_x,ac_y,cm.lap*phi_cp,cp_X,cp_Y);
-imagesc(Lapp_plot);
-colorbar;
-drawnow;
+% figure;
+% subplot(2,2,1);
+% displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
+% title(sprintf('Mesh with %d refinements',maxlev-1));
+% axis square;
+% subplot(2,2,2);
+% NNp_plot = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
+% imagesc(NNp_plot);
+% colorbar;
+% subplot(2,2,3);
+% N1Np_plot = griddata(ac_x,ac_y,cm.N1uNv*phi_cp,cp_X,cp_Y);
+% imagesc(N1Np_plot);
+% colorbar;
+% subplot(2,2,4);
+% Lapp_plot = griddata(ac_x,ac_y,cm.lap*phi_cp,cp_X,cp_Y);
+% imagesc(Lapp_plot);
+% colorbar;
+% drawnow;
 
 %%
 phi_initial = zeros(size(phi_cp));
@@ -233,15 +233,15 @@ theta_cp_new = theta_cp;
 
     %% Plotting figures
     if(mod(iter,25) ==  0 || iter == 1)
-%         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
-%         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
-%         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-%         E_plot = reshape(E,Nx,Ny);
+        phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
+        theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
+        tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
+        E_plot = reshape(E,Nx,Ny);
         
-        phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
-        theta_plot  = griddata(ac_x,ac_y,cm.NuNv*theta_cp_new,cp_X,cp_Y);
-        tempr_plot  = griddata(ac_x,ac_y,cm.NuNv*tempr_cp_new,cp_X,cp_Y);
-        E_plot  = griddata(ac_x,ac_y,E,cp_X,cp_Y);
+%         phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
+%         theta_plot  = griddata(ac_x,ac_y,cm.NuNv*theta_cp_new,cp_X,cp_Y);
+%         tempr_plot  = griddata(ac_x,ac_y,cm.NuNv*tempr_cp_new,cp_X,cp_Y);
+%         E_plot  = griddata(ac_x,ac_y,E,cp_X,cp_Y);
 
         subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));

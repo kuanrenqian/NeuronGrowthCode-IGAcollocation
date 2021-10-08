@@ -37,21 +37,22 @@ for i = 1:Nx
             BB_active = BB{SB(k,1),10};
             BB_act_log(end+1) = BB_active;
 
-%             NuNv(px,BB_active) = supp(k,1);
-%             N1uNv(px,BB_active) = suppx(k,1);
-%             NuN1v(px,BB_active) = suppy(k,1);
-%             N1uN1v(px,BB_active) = suppx(k,1) + suppy(k,1);
-%             N2uNv(px,BB_active) = suppxx(k,1);
-%             NuN2v(px,BB_active) = suppyy(k,1);
-%             lap(px,BB_active) = suppxx(k,1) + suppyy(k,1);
+            NuNv(px,BB_active) = supp(k,1);
+            N1uNv(px,BB_active) = suppx(k,1);
+            NuN1v(px,BB_active) = suppy(k,1);
+            N1uN1v(px,BB_active) = suppx(k,1) + suppy(k,1);
+            N2uNv(px,BB_active) = suppxx(k,1);
+            NuN2v(px,BB_active) = suppyy(k,1);
+            lap(px,BB_active) = suppxx(k,1) + suppyy(k,1);
 
-            NuNv(ac_ind,BB_active) = supp(k,1);
-            N1uNv(ac_ind,BB_active) = suppx(k,1);
-            NuN1v(ac_ind,BB_active) = suppy(k,1);
-            N1uN1v(ac_ind,BB_active) = suppx(k,1) + suppy(k,1);
-            N2uNv(ac_ind,BB_active) = suppxx(k,1);
-            NuN2v(ac_ind,BB_active) = suppyy(k,1);
-            lap(ac_ind,BB_active) = suppxx(k,1) + suppyy(k,1);
+%             %NuNv(NxNy,BB_active) = supp(k,1);
+%             NuNv(ac_ind,BB_active) = supp(k,1);
+%             N1uNv(ac_ind,BB_active) = suppx(k,1);
+%             NuN1v(ac_ind,BB_active) = suppy(k,1);
+%             N1uN1v(ac_ind,BB_active) = suppx(k,1) + suppy(k,1);
+%             N2uNv(ac_ind,BB_active) = suppxx(k,1);
+%             NuN2v(ac_ind,BB_active) = suppyy(k,1);
+%             lap(ac_ind,BB_active) = suppxx(k,1) + suppyy(k,1);
 
         end
     end
