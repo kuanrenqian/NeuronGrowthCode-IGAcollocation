@@ -1,33 +1,11 @@
 %% Solving laplace on THB splines
 % calculating THB NuNv,N1uNv... and store in cm
 cm = kqTHBders(Pixel,Jm,Pm,Dm);
-
-% getting collocation pts
-CEb = Pm{1,1};
-[M,~] = size(CEb);
-coll_sz = sqrt(M);
-% create collocation/control points mesh grid for later use
-coll_X_array = CEb(1:coll_sz,2).';
-coll_Y_array = CEb(1:coll_sz,2).';
-[coll_X,coll_Y] = meshgrid(coll_X_array,coll_Y_array);
-cp_X_array = linspace(0,1,Nx).';
-cp_Y_array = linspace(0,1,Nx).';
-[cp_X,cp_Y] = meshgrid(cp_X_array,cp_Y_array);
-
-% Get locally refined points from THB
-THBfinal = zeros(bf_ct,2);
-for i = 1:bf_ct
-    bbc = bf(i,1:2);
-    bf_lev = bf(i,3);
-    bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-    Pi = Pm{bf_lev,1};
-    THBfinal(i,1) = Pi(bi,1);
-    THBfinal(i,2) = Pi(bi,2);
-end
+[lap_flip, lap_id] = extract_diags(cm.lap);
 
 % setting bcid (dirichlet boundary condition id)
-bc_layers = 5;
-[bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,cp_X,cp_Y,THBfinal);
+bc_layers = 2;
+[bcid,bcid_cp] = kqMakeBCID(Nx,bc_layers,X,Y,THBfinal);
 
 % initializing phi, theta, and temperature on locally refined points
 len_cp = length(THBfinal);
@@ -46,37 +24,6 @@ theta_cp  = rand([len_cp,1]);
 tempr_cp = zeros(len_cp,1);
 theta_ori_cp = zeros(len_cp,1);
 
-%% debug test
-ac_len = length(ac);
-ac_x = zeros(ac_len,1);
-ac_y = zeros(ac_len,1);
-for i = 1:ac_len
-    ac_level = ac(i,2);
-    ac_indx = ac(i,1);
-    ac_x(i) = cell2mat(Em{ac_level}(ac_indx,8));
-    ac_y(i) = cell2mat(Em{ac_level}(ac_indx,9));
-end
-
-% figure;
-% subplot(2,2,1);
-% displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
-% title(sprintf('Mesh with %d refinements',maxlev-1));
-% axis square;
-% subplot(2,2,2);
-% NNp_plot = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
-% imagesc(NNp_plot);
-% colorbar;
-% subplot(2,2,3);
-% N1Np_plot = griddata(ac_x,ac_y,cm.N1uNv*phi_cp,cp_X,cp_Y);
-% imagesc(N1Np_plot);
-% colorbar;
-% subplot(2,2,4);
-% Lapp_plot = griddata(ac_x,ac_y,cm.lap*phi_cp,cp_X,cp_Y);
-% imagesc(Lapp_plot);
-% colorbar;
-% drawnow;
-
-%%
 phi_initial = zeros(size(phi_cp));
 theta_initial  = theta_cp;
 tempr_initial  = zeros(size(tempr_cp));
@@ -157,6 +104,26 @@ for iter=1:1:end_iter
         N1N1pk = cm.N1uN1v*phiK_cp;
         LAPpk = cm.lap*phiK_cp;
 
+        %%
+%         % term a2
+%         out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
+%             +2*NNa.*NN1a.*NN1pk;
+%         % termadx
+%         out{2} = N1Naap.*NN1pk+NNaap.*N1N1pk;
+%         %termady
+%         out{3} = NN1aap.*N1Npk+NNaap.*N1N1pk;
+%         % termNL
+%         out{4} = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
+%         if dt_t==0 % these terms only needs to be calculated once
+%             % terma2_deriv
+%             t5 =  2*NNa.*N1Na.*cm.N1uNv+NNa.^2.*cm.lap+ 2*NNa.*NN1a.*cm.NuN1v;
+%         end
+%         % termNL_deriv
+%         nl_term = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
+% %         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
+%         t6 = nl_term.*cm.NuNv;
+
+%%
         % term a2
         out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
             +2*NNa.*NN1a.*NN1pk;
@@ -168,13 +135,16 @@ for iter=1:1:end_iter
         out{4} = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
         if dt_t==0 % these terms only needs to be calculated once
             % terma2_deriv
-            t5 =  2*NNa.*N1Na.*cm.N1uNv+NNa.^2.*cm.lap+ 2*NNa.*NN1a.*cm.NuN1v;
+            t5 =  banded_dot_star((2*NNa.*N1Na+N1Naap),cm.N1uNv_flip,cm.N1uNv_id) +...
+                  banded_dot_star(NNa.^2,lap_flip,lap_id) +...
+                  banded_dot_star((2*NNa.*NN1a-N1Naap),cm.NuN1v_flip,cm.NuN1v_id);
         end
         % termNL_deriv
-        nl_term = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
-%         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
-        t6 = nl_term.*cm.NuNv;
+        temp = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
+        %t6 = temp.*NuNv;
+        t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
 
+        %%
         R = M_phi/tau*(out{1}-out{2}+out{3}+out{4});
         R = R*dtime-NNpk+NNp;
         dR = M_phi/tau*(t5+t6);
@@ -232,16 +202,17 @@ theta_cp_new = theta_cp;
 %     conct_cp = conct_cp_new;
 
     %% Plotting figures
-    if(mod(iter,25) ==  0 || iter == 1)
-        phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
-        theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
-        tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-        E_plot = reshape(E,Nx,Ny);
+    if(mod(iter,50) ==  0 || iter == 1)
+%         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
+%         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
+%         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
+%         E_plot = reshape(E,Nx,Ny);
         
-%         phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phi_cp,cp_X,cp_Y);
-%         theta_plot  = griddata(ac_x,ac_y,cm.NuNv*theta_cp_new,cp_X,cp_Y);
-%         tempr_plot  = griddata(ac_x,ac_y,cm.NuNv*tempr_cp_new,cp_X,cp_Y);
-%         E_plot  = griddata(ac_x,ac_y,E,cp_X,cp_Y);
+        phi_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*phi_cp,X,Y);
+        theta_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*theta_cp_new,X,Y);
+        tempr_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*tempr_cp_new,X,Y);
+        E_plot  = griddata(THBfinal(:,1),THBfinal(:,2),E,X,Y);
+        phi_diff  = griddata(THBfinal(:,1),THBfinal(:,2),(NNpk-NNp),X,Y);
 
         subplot(2,3,1);
         imagesc(phi_plot(2:end-1,2:end-1));
@@ -250,7 +221,7 @@ theta_cp_new = theta_cp;
         colorbar;
 
         subplot(2,3,2);
-        displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,dx*nx,dy*ny);
+        displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters);
         title(sprintf('Mesh with %d refinements',maxlev-1));
         axis square;
 
@@ -272,12 +243,11 @@ theta_cp_new = theta_cp;
         axis square;
         colorbar;
 
-%         phi_diff = reshape((NNpk-NNp),38,38); 
-%         subplot(2,3,6);
-%         imagesc(phi_diff);
-%         title('Phi diff');
-%         axis square;
-%         colorbar;
+        subplot(2,3,6);
+        imagesc(phi_diff);
+        title('Phi diff');
+        axis square;
+        colorbar;
 
         % plot current iteration
         drawnow;
@@ -287,15 +257,19 @@ theta_cp_new = theta_cp;
         catch
             fprintf('png write error skipped.\n');
         end
+
+        if(mod(iter,var_save_invl)==0 || iter == 0)
+            try
+                save(sprintf('./postprocessing/phi_plot_%2d',iter),'phi_plot');
+%                 save(sprintf('./postprocessing/theta_plot_%2d',iter),'theta_plot');
+                save(sprintf('./postprocessing/tempr_plot_%2d',iter),'tempr_plot');
+%                 save(sprintf('./postprocessing/conct_plot_%2d',iter),'conc_t_plot');
+            catch
+                fprintf('data write error skipped.\n');
+            end
+        end
+
     end
 end
 
 disp('All simulations complete!\n');
-
-%%
-figure;
-phi_plot  = griddata(ac_x,ac_y,cm.NuNv*phiK_cp,cp_X,cp_Y);
-imagesc(phi_plot);
-title(sprintf('Phi plot at iter:%2d',iter));
-axis square;
-colorbar;

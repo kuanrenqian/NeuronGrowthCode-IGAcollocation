@@ -6,6 +6,7 @@ close all;
 addpath('./setparameters');
 addpath('./thbspline');
 addpath('./iterationloop_funcs');
+addpath('./IGA_collocation_algorithm/');
 
 % diary 'log_Neuron_Growth'
 rngSeed = rng('shuffle');
@@ -16,8 +17,8 @@ warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
 warning('off',warn_id)
 
 % suppress rankDeficient warning (rows of zero in matrix)
-% warn_id = 'MATLAB:rankDeficientMatrix'; 
-% warning('off',warn_id)
+warn_id = 'MATLAB:rankDeficientMatrix'; 
+warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
@@ -61,8 +62,8 @@ disp('Simulation parameters initialization done!');
 %% Domain Setup
 Nx = 20;
 Ny = 20;
-dx = 1/40;
-dy = 1/40;
+dx = 1/Nx;
+dy = 1/Ny;
 
 parameters = setparameters_neurite(Nx,Ny);
 % [phi,conct] = kqInitializeNeuriteGrowth(seed_radius,Nx);
@@ -70,8 +71,7 @@ parameters = setparameters_neurite(Nx,Ny);
 toBeRefned = zeros(Nx,Ny);
 for i = 1:Nx
     for j = 1:Ny
-        if (sqrt((i-Nx/2)^2+(j-Ny/2)^2) <= 5+1)
-%                 && (sqrt((i-Nx/2)^2+(j-Ny/2)^2) >= 8-1)
+        if (sqrt((i-Nx/2)^2+(j-Ny/2)^2) <= seed_radius)
             toBeRefned(i,j) = 1;
         end
     end

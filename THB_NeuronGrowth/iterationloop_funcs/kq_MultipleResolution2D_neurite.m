@@ -1,6 +1,4 @@
 iteration=0;
-iter_vector = [];
-n_vector = [];
 pU = parameters.pU;
 pV = parameters.pV;
 
@@ -14,19 +12,6 @@ for level = parameters.maxlevel:-1:1
         nx = Nx;
         ny = Ny;
         [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
-    else
-        toBeRefned_new = zeros((Nx)* 2  ,(Ny)* 2  );
-        toBeRefned_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = toBeRefned;
-        toBeRefned = toBeRefned_new;
-
-%         phi_new = zeros((Nx)* 2  ,(Ny)* 2  );
-%         phi_new(floor((Nx* 2  -Nx)/2)+1:Nx+floor((Nx* 2  -Nx)/2),floor((Ny* 2  -Ny)/2)+1:Ny+floor((Ny* 2  -Ny)/2)) = phi;
-%         phi = phi_new;
-
-        Nx = Nx*2;
-        Ny = Ny*2;
-        
-        [X,Y] = meshgrid(linspace(0,1,Nx),linspace(0,1,Ny));
     end
 
     %% Construct B-spline grid
@@ -36,12 +21,11 @@ for level = parameters.maxlevel:-1:1
     for multilev = 0:1:maxlev-1
         if(multilev>0)
             % local refinement based on laplacian of phi
-            for j =floor(bf_ct/4):floor(3*bf_ct/4)
+            for j =1:floor(bf_ct)
                 if(rf_cp(j)>0)
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
-                    [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-%                     [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
+                    [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
                 end
             end
         end
@@ -80,22 +64,23 @@ for level = parameters.maxlevel:-1:1
             Dm{lev,1} = BE;
         end
  
-        [Jm,Coeff,Pixel] = constructAdaptiveGrid(ac,parameters,Dm,Em,X,Y,knotvectorU,knotvectorV,multilev,nobU,nobV,nelemU);
+        % Get locally refined points from THB
+        THBfinal = zeros(bf_ct,2);
+        for i = 1:bf_ct
+            bbc = bf(i,1:2);
+            bf_lev = bf(i,3);
+            bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
+            Pi = Pm{bf_lev,1};
+            THBfinal(i,1) = Pi(bi,1);
+            THBfinal(i,2) = Pi(bi,2);
+        end
+
+        [Jm,Coeff,Pixel] = kqConstructAdaptiveGrid(ac,parameters,Dm,Em,THBfinal,knotvectorU,knotvectorV,multilev,nobU,nobV,nelemU);
     end
         
     % rf_cp is purely for refinement, actual phi is initialized on locally
     % refined points
-    Pfinal = zeros(bf_ct,2);
-    for i = 1:bf_ct
-        bbc = bf(i,1:2);
-        bf_lev = bf(i,3);
-        bi = nobU(bf_lev,1)*(bbc(1,2)-1)+bbc(1,1);
-        Pi = Pm{bf_lev,1};
-        Pfinal(i,1) = Pi(bi,1);
-        Pfinal(i,2) = Pi(bi,2);
-    end
-
-    rf_cp  = interp2(X,Y,toBeRefned,Pfinal(:,2),Pfinal(:,1));
+    rf_cp  = interp2(X,Y,del2(toBeRefned),THBfinal(:,2),THBfinal(:,1));
     rf_cp(isnan(rf_cp(:))) = 0;
 
     if level == 1 % second level, 1 local refinement

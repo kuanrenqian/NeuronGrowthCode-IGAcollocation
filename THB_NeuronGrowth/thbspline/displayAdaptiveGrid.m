@@ -1,4 +1,4 @@
-function [] = displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pmold,parameters,nx,ny)
+function [] = displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pmold,parameters)
 
 % figure;
 ac_ct = size(ac,1);
@@ -64,8 +64,6 @@ for i = 1:ac_ct
             pj = CEb(SB1(k,1),2);
             sumbx = sumbx + pj*PHID(k,1);
             sumby = sumby + pi*PHID(k,1);
-
-            
         end
         cfx(j,1) = sumbx;
         cfx(j,2) = sumby;
@@ -77,15 +75,12 @@ for i = 1:ac_ct
     x = [x1, x2, x2, x1, x1];
     y = [y1, y1, y2, y2, y1];
     
-%     plot(x,y,'-','color','black','MarkerEdgeColor','k')
-    plot(40*x,40*y,'-','color','black','MarkerEdgeColor','k')
-    axis([0 40 0 40])
+    plot(x,y,'-','color','black','MarkerEdgeColor','k')
+%     axis([0 40 0 40])
 %     set(gca,'position',[0 0 1 1],'units','normalized')
     hold on;
     CF{i,1} = cfx;
-    % end
 end
 hold off
-% saveas(gcf,'mesh.png');
 drawnow
 end

@@ -31,7 +31,7 @@ for lev = 1:maxlev,
     nelemV(lev,1) = size(uknotvectorV{lev,1},2) -1;
     kV(lev,1) = length(knotvectorV{lev,1});
     nobV(lev,1) = kV(lev,1) - pV -1;
-    
+
     px = zeros(nobU(lev,1)*nobV(lev,1),2);
     BBv = zeros(nobU(lev,1)*nobV(lev,1),2);
     CP{lev,1} = px;

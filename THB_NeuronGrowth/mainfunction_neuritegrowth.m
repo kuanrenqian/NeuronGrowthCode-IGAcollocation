@@ -6,6 +6,10 @@ addpath('./setparameters');
 addpath('./thbspline');
 addpath('./iterationloop_funcs');
 
+% suppress griddata warning (plotting dup points warning)
+warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
+warning('off',warn_id)
+
 Nx = 20;
 Ny = 20;
 dx = 1/Nx;
