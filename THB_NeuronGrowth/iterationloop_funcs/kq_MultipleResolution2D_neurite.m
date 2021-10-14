@@ -20,7 +20,7 @@ for level = parameters.maxlevel:-1:1
     
     for multilev = 0:1:maxlev-1
         if(multilev>0)
-            % local refinement based on laplacian of phi
+            % local refinement based on laplacian of toBeRefined
             for j =1:floor(bf_ct)
                 if(rf_cp(j)>0)
                     bbc = bf(j,1:2);

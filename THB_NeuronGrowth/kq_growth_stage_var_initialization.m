@@ -16,6 +16,3 @@ Max_x = 0;
 Max_y = 0;
 delta_L = 1;
 term_change = 1;
-
-var_save_invl = 500;
-png_save_invl = 100;

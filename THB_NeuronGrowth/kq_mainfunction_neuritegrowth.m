@@ -6,7 +6,7 @@ close all;
 addpath('./setparameters');
 addpath('./thbspline');
 addpath('./iterationloop_funcs');
-addpath('./IGA_collocation_algorithm/');
+addpath('./IGA_collocation_algorithm/'); % this path is only to get optimization function by cosmin
 
 % diary 'log_Neuron_Growth'
 rngSeed = rng('shuffle');
@@ -16,7 +16,7 @@ save('./postprocessing/rngSeed','rngSeed');
 warn_id = 'MATLAB:scatteredInterpolant:DupPtsAvValuesWarnId';
 warning('off',warn_id)
 
-% suppress rankDeficient warning (rows of zero in matrix)
+% suppress rankDeficient warning
 warn_id = 'MATLAB:rankDeficientMatrix'; 
 warning('off',warn_id)
 
@@ -51,7 +51,7 @@ Diff = 4;
 source_coeff = 0.05;
 
 % Seed size
-seed_radius = 5;
+seed_radius = 10;
 
 % Expanding domain parameters
 BC_tol = 10;
@@ -60,14 +60,16 @@ expd_coef = 1.2;
 disp('Simulation parameters initialization done!');
 
 %% Domain Setup
-Nx = 20;
-Ny = 20;
+Nx = 40;
+Ny = 40;
 dx = 1/Nx;
 dy = 1/Ny;
 
 parameters = setparameters_neurite(Nx,Ny);
 % [phi,conct] = kqInitializeNeuriteGrowth(seed_radius,Nx);
 
+% where to refine, the laplace of this var will be used to identify where to refine
+% (same as phi, but phi needs to be initialized based on THBfinal in iterationloop)
 toBeRefned = zeros(Nx,Ny);
 for i = 1:Nx
     for j = 1:Ny

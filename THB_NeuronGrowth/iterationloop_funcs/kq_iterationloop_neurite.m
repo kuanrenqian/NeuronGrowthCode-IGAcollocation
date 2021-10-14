@@ -31,9 +31,15 @@ tempr_initial  = zeros(size(tempr_cp));
 disp('Phi,conc,theta,tempr,bcid - initialization done!');
 disp('********************************************************************');
 
+% variable initializations for different growth stages
 kq_growth_stage_var_initialization
 
+% just a initialization for easy later use
 tempr_cp_new = tempr_cp;
+
+update_invl = 10;
+var_save_invl = 500;
+png_save_invl = 100;
 
 figure;
 set(gcf,'position',[50,50,900,700]);
@@ -41,10 +47,11 @@ tic
 % transient iterations
 for iter=1:1:end_iter
 
-    fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
-    toc
+    if(mod(iter,update_invl) ==  0 || iter == 1)
+        fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
+        toc
+    end
 
-    % de-coupling theta (debug)
     % calculating a and a*a' (aap) in the equation using theta and phi
     [a_cp, ~, aap_cp,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi_cp,cm.NuNv*theta_cp,cm.NuNv,cm.NuN1v,cm.N1uNv);
 
@@ -82,8 +89,8 @@ for iter=1:1:end_iter
     % residual for NR method (make sure it is larger than tolerance at the beginning)
     R = 2*tol;
 
-    % magnitude of theta gradient (offset by 1e-12 to avoid division by zero)
-    mag_grad_theta = sparse(sqrt((cm.N1uNv*theta_cp).^2+(cm.NuN1v*theta_cp).^2)+1e-12);
+    % magnitude of theta gradient
+    mag_grad_theta = sparse(sqrt((cm.N1uNv*theta_cp).^2+(cm.NuN1v*theta_cp).^2));
     C1 = E-0.5+6.*s_coeff.*mag_grad_theta;
 
     % NR method calculation
@@ -104,7 +111,7 @@ for iter=1:1:end_iter
         N1N1pk = cm.N1uN1v*phiK_cp;
         LAPpk = cm.lap*phiK_cp;
 
-        %%
+        %% Non-optimized code for debugging
 %         % term a2
 %         out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
 %             +2*NNa.*NN1a.*NN1pk;
@@ -123,7 +130,7 @@ for iter=1:1:end_iter
 % %         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
 %         t6 = nl_term.*cm.NuNv;
 
-%%
+        %% Optimized code by Cosmin
         % term a2
         out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
             +2*NNa.*NN1a.*NN1pk;
@@ -150,17 +157,15 @@ for iter=1:1:end_iter
         dR = M_phi/tau*(t5+t6);
         dR = dR*dtime-cm.NuNv;
 
-        %%
+
         % check residual and update guess
-%         R = R - dR*phi_initial;
-%         [dR, R] = kqStiffMatSetupBCID(dR,R,bcid_cp);
         [dR, R] = kqNGStiffMatSetupBCID(dR,R,phi_initial,bcid_cp);
 
         dp = dR\(-R);
         phiK_cp(bcid_cp==0) = phiK_cp(bcid_cp==0) + dp;
 
         max_phi_R = full(max(abs(R)));
-        fprintf('Phi NR Iter: %.2d -> max residual: %.6d\n',ind_check, max_phi_R);
+%         fprintf('Phi NR Iter: %.2d -> max residual: %.6d\n',ind_check, max_phi_R);
         if (ind_check >= 100 || max(abs(R))>1e20)
             error('Phi NR method NOT converging!-Max residual: %.2d\n',max_phi_R);
         end
@@ -171,11 +176,9 @@ for iter=1:1:end_iter
     dt_tempr = dtime;
     dt_theta = dtime;
 
-    %% Temperature (Implicit method)
+    %% Temperature (Explicit method) Need to be changed to implicit
     temprLHS = cm.NuNv;
     temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));
-%     temprRHS = temprRHS - temprLHS*tempr_initial;
-%     [temprLHS, temprRHS] = kqStiffMatSetupBCID(temprLHS,temprRHS,bcid_cp);
     [temprLHS, temprRHS] = kqNGStiffMatSetupBCID(temprLHS,temprRHS,tempr_initial,bcid_cp);
 
     tempr_sol = temprLHS\temprRHS;
@@ -192,7 +195,9 @@ for iter=1:1:end_iter
 %     [thetaLHS, thetaRHS] = kqStiffMatSetupBCID(thetaLHS,thetaRHS,bcid_cp);
 % 
 %     theta_cp_new = thetaLHS\thetaRHS;
-theta_cp_new = theta_cp;
+
+    % theta is de-coupled based on Ren 2018, rand theta gets the job done
+    theta_cp_new = theta_cp;
 
     %% iteration update
     % update variables in this iteration
@@ -202,12 +207,8 @@ theta_cp_new = theta_cp;
 %     conct_cp = conct_cp_new;
 
     %% Plotting figures
-    if(mod(iter,50) ==  0 || iter == 1)
-%         phi_plot = reshape(cm.NuNv*phiK_cp,Nx,Ny);
-%         theta_plot = reshape(cm.NuNv*theta_cp_new,Nx,Ny);
-%         tempr_plot = reshape(cm.NuNv*tempr_cp_new,Nx,Ny);
-%         E_plot = reshape(E,Nx,Ny);
-        
+    if(mod(iter,update_invl) ==  0 || iter == 1)
+        % interpolating to get plottable data
         phi_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*phi_cp,X,Y);
         theta_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*theta_cp_new,X,Y);
         tempr_plot  = griddata(THBfinal(:,1),THBfinal(:,2),cm.NuNv*tempr_cp_new,X,Y);
@@ -252,12 +253,14 @@ theta_cp_new = theta_cp;
         % plot current iteration
         drawnow;
 
+        % save plot as png
         try
             saveas(gcf,sprintf('./postprocessing/NeuronGrowth_%.2d.png',iter));
         catch
             fprintf('png write error skipped.\n');
         end
 
+        % save vars
         if(mod(iter,var_save_invl)==0 || iter == 0)
             try
                 save(sprintf('./postprocessing/phi_plot_%2d',iter),'phi_plot');
