@@ -177,8 +177,16 @@ for iter=1:1:end_iter
     dt_theta = dtime;
 
     %% Temperature (Explicit method) Need to be changed to implicit
-    temprLHS = cm.NuNv;
-    temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));
+%     temprLHS = cm.NuNv;
+%     temprRHS = (cm.NuNv*tempr_cp + cm.lap*tempr_cp.*dt_tempr + kappa*(NNpk-NNp));
+%     [temprLHS, temprRHS] = kqNGStiffMatSetupBCID(temprLHS,temprRHS,tempr_initial,bcid_cp);
+% 
+%     tempr_sol = temprLHS\temprRHS;
+%     tempr_cp_new(bcid_cp==0) = tempr_sol;
+
+    %% Temperature (Implicit method)
+    temprLHS = cm.NuNv-dt_tempr*cm.lap;
+    temprRHS = kappa*(NNpk-NNp)+cm.NuNv*tempr_cp;
     [temprLHS, temprRHS] = kqNGStiffMatSetupBCID(temprLHS,temprRHS,tempr_initial,bcid_cp);
 
     tempr_sol = temprLHS\temprRHS;
