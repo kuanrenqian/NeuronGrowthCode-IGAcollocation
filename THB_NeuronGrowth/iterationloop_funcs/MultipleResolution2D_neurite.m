@@ -24,6 +24,7 @@ for level = parameters.maxlevel:-1:1
                 bbc = bf(j,1:2);
                 bf_lev = bf(j,3);
                 [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
+%                 [Dm,Em,Pm] =  Refine2D(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
             end
         end
         

@@ -22,8 +22,8 @@ warning('off',warn_id)
 
 %% Phase Field Simulation Variable Initialization
 % time stepping variables
-dtime = 5e-3;
-% dtime = 1e-4;
+%dtime = 5e-3;
+dtime = 1e-3;
 end_iter = 35000;
 
 % tolerance for NR method
@@ -60,8 +60,8 @@ expd_coef = 1.2;
 disp('Simulation parameters initialization done!');
 
 %% Domain Setup
-Nx = 20;
-Ny = 20;
+Nx = 25;
+Ny = 25;
 dx = 1/Nx;
 dy = 1/Ny;
 
@@ -73,7 +73,7 @@ parameters = setparameters_neurite(Nx,Ny);
 toBeRefned = zeros(Nx,Ny);
 for i = 1:Nx
     for j = 1:Ny
-        if (sqrt((i-Nx/2)^2+(j-Ny/2)^2) <= seed_radius)
+        if (sqrt((i-Nx/2)^2+(j-Ny/2)^2) <= seed_radius+1)
             toBeRefned(i,j) = 1;
         end
     end

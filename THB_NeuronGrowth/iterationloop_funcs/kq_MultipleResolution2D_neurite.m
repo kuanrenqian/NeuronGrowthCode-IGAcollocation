@@ -22,11 +22,11 @@ for level = parameters.maxlevel:-1:1
         if(multilev>0)
             % local refinement based on laplacian of toBeRefined
             for j =1:floor(bf_ct)
-%                 if(rf_cp(j)>0)
+                if(rf_cp(j)>0)
                     bbc = bf(j,1:2);
                     bf_lev = bf(j,3);
                     [Dm,Em,Pm] =  Refine2Dtrunc1(bbc(1,1),bbc(1,2),bf_lev,Dm,Em,Pm,knotvectorU,knotvectorV,pU,pV);
-%                 end
+                end
             end
         end
         

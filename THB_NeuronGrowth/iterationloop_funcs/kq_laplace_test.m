@@ -47,7 +47,7 @@ colorbar;
 axis square;
 
 subplot(2,2,2);
-displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters);
+displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,40,0.5);
 title(sprintf('Mesh with %d refinements',maxlev-1));
 axis square;
 

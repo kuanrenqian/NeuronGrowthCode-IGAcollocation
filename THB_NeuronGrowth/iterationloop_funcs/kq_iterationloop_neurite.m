@@ -173,6 +173,7 @@ for iter=1:1:end_iter
         dt_t = dt_t+dtime;
     end
 
+%     dt_tempr = dtime/5;
     dt_tempr = dtime;
     dt_theta = dtime;
 
@@ -224,30 +225,35 @@ for iter=1:1:end_iter
         phi_diff  = griddata(THBfinal(:,1),THBfinal(:,2),(NNpk-NNp),X,Y);
 
         subplot(2,3,1);
-        imagesc(phi_plot(2:end-1,2:end-1));
+        imagesc(phi_plot);
         title(sprintf('Phi plot at iter:%2d',iter));
         axis square;
         colorbar;
 
         subplot(2,3,2);
-        displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters);
+        imagesc(phi_plot);
+        title(sprintf('Phi plot at iter:%2d',iter));
+        axis square;
+        colorbar;
+        hold on;
+        displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pm,parameters,Nx,0.5);
         title(sprintf('Mesh with %d refinements',maxlev-1));
         axis square;
 
         subplot(2,3,3);
-        imagesc(theta_plot(2:end-1,2:end-1));
+        imagesc(theta_plot);
         title(sprintf('Theta plot at iter:%2d',iter));
         axis square;
         colorbar;
 
         subplot(2,3,4);
-        imagesc(tempr_plot(2:end-1,2:end-1));
+        imagesc(tempr_plot);
         title(sprintf('T plot at iter:%2d',iter));
         axis square;
         colorbar;
         
         subplot(2,3,5);
-        imagesc(E_plot(2:end-1,2:end-1));
+        imagesc(E_plot);
         title(sprintf('E at iter:%2d',iter));
         axis square;
         colorbar;

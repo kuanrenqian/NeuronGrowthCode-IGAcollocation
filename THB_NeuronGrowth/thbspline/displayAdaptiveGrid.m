@@ -1,4 +1,4 @@
-function [] = displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pmold,parameters)
+function [] = displayAdaptiveGrid(ac,Coeff,Em,knotvectorU,knotvectorV,Jm,Pmold,parameters,scale,translate)
 
 % figure;
 ac_ct = size(ac,1);
@@ -72,8 +72,10 @@ for i = 1:ac_ct
     x2=cfx(2,1);
     y1=cfx(1,2);
     y2=cfx(3,2);
-    x = [x1, x2, x2, x1, x1];
-    y = [y1, y1, y2, y2, y1];
+    % scale and translate are arbitrary variables, just to plot mesh on top
+    % of results
+    x = [x1, x2, x2, x1, x1]*scale+translate;
+    y = [y1, y1, y2, y2, y1]*scale+translate;
     
     plot(x,y,'-','color','black','MarkerEdgeColor','k')
 %     axis([0 40 0 40])
