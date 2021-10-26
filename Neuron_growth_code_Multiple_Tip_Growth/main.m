@@ -7,12 +7,8 @@ close all;
 clear;
 clc;
 
-%%
-f = figure('visible','off');
-
 %% Including Path 
-addpath('../IGA_collocation_algorithm');
-addpath('../Hem_algorithm');
+addpath('./IGA_collocation_algorithm');
 
 disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
@@ -20,12 +16,12 @@ disp('********************************************************************');
 
 % diary 'log_Neuron_Growth'
 rngSeed = rng('shuffle');
-save('rngSeed','rngSeed');
+save('./data/rngSeed','rngSeed');
 
 %% Variable Initialization
 % time stepping variables
-dtime = 5e-3;
-end_iter = 35000;
+dtime = 1e-2;
+end_iter = 20000;
 
 % tolerance for NR method
 tol = 1e-4;
@@ -48,6 +44,7 @@ aniso = 6;
 kappa= 4;
 alph = 0.9; % changing name to alph cause alpha is a function
 pix=4.0*atan(1.0);
+alphOverPix = alph/pix;
 gamma = 15.0;
 tau = 0.3;
 M_phi = 60;
@@ -58,10 +55,11 @@ delta = 0.1;
 epsilonb = 0.04;
 
 % Tubulin parameters
+r = 1e6;
+g = 0.1;
 alpha_t = 0.001;
 beta_t = 0.001;
 Diff = 4;
-% source_coeff = 0.012;
 source_coeff = 0.05;
 
 % Seed size
@@ -75,7 +73,6 @@ expd_coef = 1.2;
 [phi,conct] = initialize_neurite_growth(seed_radius, lenu, lenv);
 
 disp('Base variable - initialization done!');
-
 
 %% Constructing coef matrix
 order_deriv = 2;    % highest order of derivatives to calculate
@@ -108,7 +105,7 @@ theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
 
 % plotting initial phi
-set(gcf,'position',[100,100,800,200]);
+set(gcf,'position',[100,100,800,400]);
 colormap parula;
 
 % ID for boundary location (suppress 4 edges)
@@ -132,21 +129,15 @@ theta = sparse(theta);
 tempr = sparse(tempr);
 bcid = sparse(bcid);
 
-iter_stage2_begin = 1200;
-iter_stage3_begin = 8000;
+iter_stage2_begin = 500;
+iter_stage3_begin = 6000;
 iter_stage45_begin = 15000;
 rot_iter_invl = 500;
-phi_actin = reshape(cm.NuNv*phi,lenu,lenv);
-param = GetParam(phi_actin,dtime);
-actin_start = rot_iter_invl*2;
 
 Rot = zeros(1,20);
 rotate = zeros(1,20);
 rotate_intv = zeros(1,20);
 size_Max = 0;
-
-% windowSize=5;  % Decide as per your requirements
-% kernel=ones(windowSize)/windowSize^2;
 
 var_save_invl = 500;
 png_save_invl = 100;
@@ -162,8 +153,9 @@ term_change = 1;
 
 tic
 % transient iterations
-for iter=1:1:end_iter
-
+iter = 0;
+while iter <= end_iter
+    iter = iter + 1;
     if(mod(iter,50) == 0)
         fprintf('Progress: %.2d/%.2d\n',iter,end_iter);
         toc
@@ -174,22 +166,22 @@ for iter=1:1:end_iter
     [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
         cm.U_NuNv,cm.NuN1v,cm.N1uNv);
     
+    NNtempr = cm.NuNv*tempr;
+    NNct = cm.NuNv*conc_t;
+
     if(iter<=iter_stage2_begin)
-        E = (alph./pix).*atan(gamma.*(1-(cm.NuNv*tempr)));
+        E = alphOverPix*atan(gamma*(1-NNtempr));
     else
         nnT = reshape(theta_ori,lenu*lenv,1);
-        conct_plot = reshape(cm.NuNv*conc_t,lenu,lenv);
-        r = 1e6;
-        g = 0.1;
-        delta_L = r*reshape(conct_plot,lenu*lenv,1) - g;
+        delta_L = r*NNct - g;
         term_change = (regular_Heiviside_fun(delta_L));
         term_change(nnT==1)=1;
 
-        E = (alph./pix).*atan(term_change.*gamma.*(1-(cm.NuNv*tempr)));
+        E = alphOverPix*atan(gamma*term_change.*(1-NNtempr));
         E(abs(nnT)==0) = 0;
         
         if(mod(iter,50) == 0)
-            subplot(1,3,2);
+            subplot(2,3,5);
             phi_plot = reshape(cm.NuNv*phi,lenu,lenv);
             imagesc(reshape(E,lenu,lenv)+phi_plot);
             title(sprintf('E overlay with phi'));
@@ -197,8 +189,7 @@ for iter=1:1:end_iter
             colorbar;
         end
     end
-    
-    
+
     %% Phi (Implicit Nonlinear NR method)
     % NR method initial guess (guess current phi)
     phiK = phi;
@@ -206,7 +197,7 @@ for iter=1:1:end_iter
     R = 2*tol;
     
     % magnitude of theta gradient (offset by 1e-12 to avoid division by zero)
-    mag_grad_theta = sparse(sqrt((cm.N1uNv*theta).^2+(cm.NuN1v*theta).^2)+1e-12);
+    mag_grad_theta = sparse(sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta))+1e-12);
     C1 = sparse(E-0.5+6.*s_coeff.*mag_grad_theta);
 
     % NR method calculation
@@ -228,22 +219,22 @@ for iter=1:1:end_iter
         LAPpk = lap*phiK;
         
         % term a2
-        out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.^2.*LAPpk ...
+        out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.*NNa.*LAPpk ...
             +2*NNa.*NN1a.*NN1pk;
         % termadx
         out{2} = N1Naap.*NN1pk+NNaap.*N1N1pk;
         %termady
         out{3} = NN1aap.*N1Npk+NNaap.*N1N1pk;
         % termNL
-        out{4} = -NNpk.^3+(1-C1).*NNpk.^2+(C1).*NNpk;
+        out{4} = -NNpk.*NNpk.*NNpk+(1-C1).*NNpk.*NNpk+(C1).*NNpk;
         if dt_t==0 % these terms only needs to be calculated once
             % terma2_deriv
             t5 =  banded_dot_star((2*NNa.*N1Na+N1Naap),cm.N1uNv_flip,cm.N1uNv_id) +...
-                  banded_dot_star(NNa.^2,lap_flip,lap_id) +...
+                  banded_dot_star(NNa.*NNa,lap_flip,lap_id) +...
                   banded_dot_star((2*NNa.*NN1a-N1Naap),cm.NuN1v_flip,cm.NuN1v_id);
         end
         % termNL_deriv
-        temp = (-3*NNpk.^2+2*(1-C1).*NNpk+C1);
+        temp = (-3*NNpk.*NNpk+2*(1-C1).*NNpk+C1);
         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
         
         R = M_phi/tau*(out{1}-out{2}+out{3}+out{4});
@@ -251,7 +242,6 @@ for iter=1:1:end_iter
         dR = M_phi/tau*(t5+t6);
         dR = dR*dtime-cm.NuNv;
 
-        %%
         % check residual and update guess
         R = R - dR*phi_initial;
         [dR, R] = StiffMatSetupBCID(dR, R,bcid,phi_initial);
@@ -268,81 +258,73 @@ for iter=1:1:end_iter
     end
 
     %% Temperature (Implicit method)
-    temprLHS = cm.NuNv;
-    temprRHS = (cm.NuNv*tempr + 3*lap*tempr.*dt_t + kappa*(cm.NuNv*phiK-cm.NuNv*phi));
-    temprRHS = temprRHS - temprLHS*tempr_initial;
+    temprLHS = cm.NuNv-3*dt_t*lap;
+    temprRHS = kappa*(cm.NuNv*phiK-cm.NuNv*phi)+NNtempr;
+
     [temprLHS, temprRHS] = StiffMatSetupBCID(temprLHS, temprRHS,bcid,tempr_initial);
     tempr_new = temprLHS\temprRHS;
 
-    %% Theta (Implicit method)
-    lap_theta = lap*theta;
-    P2 = 10*NNpk.^3-15*NNpk.^4+6*NNpk.^5;
-    P2 = P2.*s_coeff.*mag_grad_theta;
-    
-    thetaLHS = (cm.NuNv-dt_t.*M_theta.*P2.*lap);
-    thetaRHS = (cm.NuNv*theta);
-    thetaRHS = thetaRHS - thetaLHS*theta_initial;
-    [thetaLHS, thetaRHS] = StiffMatSetupBCID(thetaLHS, thetaRHS,bcid,theta_initial);
-    theta_new = thetaLHS\thetaRHS;
-
     %% Tubulin concentration (Implicit method)
-    NNct = cm.NuNv*conc_t;
-    N1Nct = cm.N1uNv*conc_t;
-    NN1ct = cm.NuN1v*conc_t;
-    N2Nct = cm.N2uNv*conc_t;
-    NN2ct = cm.NuN2v*conc_t;
-    LAPct = lap*conc_t;
-
-    sum_lap_phi = sum(LAPpk.^2);
     NNp = cm.NuNv*phi;
     nnpk = round(NNpk);
+
+    if iter == 1
+        initial_LAPpk = lap*phi;
+        sum_lap_phi = sum(initial_LAPpk.*initial_LAPpk);
+        save(sprintf('./data/initial_LAPpk_%2d',iter),'initial_LAPpk');
+    end
     
-    term_diff = Diff.*(N1Npk.*N1Nct+NNpk.*LAPct+NN1pk.*NN1ct);
-    term_alph = alpha_t.*(N1Npk.*NNct+NNpk.*N1Nct+NN1pk.*NNct+NNpk.*NN1ct);
-    term_beta = beta_t.*NNpk.*NNct;
-    term_source = source_coeff.*LAPpk.^2./sum_lap_phi;
-    
-    conc_t_RHS = term_diff-term_alph-term_beta+term_source;
-    conc_t_RHS = (conc_t_RHS-NNct.*(NNpk-NNp)./dt_t).*dt_t./NNp+NNct;
-    conc_t_LHS = cm.NuNv;
+    term_diff = Diff.*(banded_dot_star(N1Npk,cm.N1uNv_flip,cm.N1uNv_id) + ...
+        banded_dot_star(NNpk,lap_flip,lap_id) + ...
+        banded_dot_star(NN1pk,cm.NuN1v_flip,cm.NuN1v_id));
+    term_alph = alpha_t.*(banded_dot_star(N1Npk,cm.NuNv_flip,cm.NuNv_id) + ...
+        banded_dot_star(NNpk,cm.N1uNv_flip,cm.N1uNv_id) + ...
+        banded_dot_star(NN1pk,cm.NuNv_flip,cm.NuNv_id) + ...
+        banded_dot_star(NNpk,cm.NuN1v_flip,cm.NuN1v_id));
+    term_beta = beta_t.*banded_dot_star(NNpk,cm.NuNv_flip,cm.NuNv_id);
+    term_source = source_coeff/sum_lap_phi*initial_LAPpk.*initial_LAPpk;
+
+    conc_t_RHS = dt_t*term_source-NNct.*(NNpk-NNp)+NNp.*NNct;
+    conc_t_LHS = NNp.*cm.NuNv-dt_t.*(term_diff-term_alph-term_beta);
     bcid_t = (~nnpk);
     [conc_t_LHS, conc_t_RHS] = StiffMatSetupBCID(conc_t_LHS, conc_t_RHS,bcid_t,zeros(lenu*lenv,1));
     conc_t_new = conc_t_LHS\conc_t_RHS;
     
-    %% Actin wave model
-%     actin_wave_prop
-    
     %% iteration update
     % update variables in this iteration
     phi = phiK;
-    theta = theta_new;
     tempr = tempr_new;
     conc_t = conc_t_new;
 
     %% Plotting figures
     if(mod(iter,50) == 0 || iter == 1)
         phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
-        theta_plot = reshape(cm.NuNv*theta_new,lenu,lenv);
         tempr_plot = reshape(cm.NuNv*tempr_new,lenu,lenv);
         conct_plot = reshape(cm.NuNv*conc_t_new,lenu,lenv);
         
-        subplot(1,3,1);
+        subplot(2,3,1);
         imagesc(phi_plot);
         title(sprintf('Phi at iteration = %.2d',iter));
         axis square;
         colorbar;
-        
-        %         subplot(1,3,5);
-%         imagesc(param.H);
-%         title(sprintf('H at iteration = %.2d',iter));
-%         axis square;
-%         colorbar;
 
-%         subplot(1,3,6);
-%         imagesc(param.A);
-%         title(sprintf('A at iteration = %.2d',iter));
-%         axis square;
-%         colorbar;
+        subplot(2,3,3);
+        imagesc(tempr_plot);
+        title(sprintf('T at iteration = %.2d',iter));
+        axis square;
+        colorbar;
+
+        subplot(2,3,4);
+        imagesc(conct_plot);
+        title(sprintf('Tubulin at iteration = %.2d',iter));
+        axis square;
+        colorbar;
+        
+        subplot(2,3,6);
+        imagesc(reshape(initial_LAPpk,lenu,lenv));
+        title(sprintf('initial_LAPpk at iteration = %.2d',iter));
+        axis square;
+        colorbar;
 
         % plot current iteration
         drawnow;
@@ -366,9 +348,6 @@ for iter=1:1:end_iter
             Nx = Nx+10;
             Ny = Ny+10;
 
-            Max_x = Max_x + 5;
-            Max_y = Max_y + 5;            
-                
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
 
@@ -383,9 +362,8 @@ for iter=1:1:end_iter
 
             sz = length(lap);
 
-            [phi,theta,theta_ori,conc_t,param,tempr,phi_initial,theta_initial,tempr_initial,bcid] ...
-                = kqExpandDomain_Actinwave(sz,phiK,theta_new,conc_t_new,max_x,max_y,param,...
-                tempr_new,oldNuNv,cm.NuNv);
+            [phi,theta,conc_t,tempr,initial_LAPpk,phi_initial,theta_initial,tempr_initial,bcid] ...
+                = kqExpandDomain(sz,phiK,theta,conc_t_new,tempr_new,initial_LAPpk,oldNuNv,cm.NuNv);
 
             phiK = phi;
 
@@ -397,7 +375,6 @@ for iter=1:1:end_iter
     if(mod(iter,var_save_invl)==0 || iter == 0)
         try
             save(sprintf('./data/phi_on_cp_%2d',iter),'phi');
-            save(sprintf('./data/theta_on_cp_%2d',iter),'theta');
             save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr');
             save(sprintf('./data/conct_on_cp_%2d',iter),'conc_t');
         catch
@@ -407,20 +384,20 @@ for iter=1:1:end_iter
     
     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
 
-    if (iter < iter_stage2_begin)
-        max_x = floor(lenu/2);
-        max_y = floor(lenv/2);
+%     if (iter == 1)
+%         max_x = floor(lenu/2);
+%         max_y = floor(lenv/2);
 
-    elseif (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
+    Max_x = 0;
+    Max_y = 0;
+
+    if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
             tip = sum_filter(full(phi_plot),0);
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
-            X_dist = Max_x-lenu/2+1e-6;
-            Y_dist = Max_y-lenu/2+1e-6;
-            initial_angle = atan2(X_dist,Y_dist).';
-            
-            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,initial_angle,size_Max);
+            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
+
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
 
             phi_id = full(phi_plot);
@@ -441,14 +418,25 @@ for iter=1:1:end_iter
                 ID(L.PixelIdxList{k}) = k;
                 for i = 1:lenu
                     for j = 1:lenv
-                        dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,1))^2+(j-centroids(k,2))^2);
+                        dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,2))^2+(j-centroids(k,1))^2);
                     end
                 end
 
-                dist_k = reshape(dist(:,:,k),lenu*lenv,1);
-                [max_dist,max_index] = max(dist_k);
-                max_x(k) = ceil(max_index/lenu);
-                max_y(k) = rem(max_index,lenu);
+%                 dist_k = reshape(dist(:,:,k),lenu*lenv,1);
+                dist_k = dist(:,:,k);
+%                 [max_dist,max_index] = max(dist_k);
+                dist_k(dist_k<=0.9*max(dist_k)) = 0;
+                tip = sum_filter(dist_k,0);
+                regionalMaxima = imregionalmax(full(tip));
+                [Max_y,Max_x] = find(regionalMaxima);
+
+                max_x = [max_x,Max_x];
+                max_y = [max_y,Max_y];
+
+%                 for l = 1:length(max_index)
+%                     max_x(end+1) = ceil(max_index(l)/lenu);
+%                     max_y(end+1) = rem(max_index(l),lenu);
+%                 end
 %                 if(iter == iter_stage3_begin)
 %                     x_dist = max_x(k)-centroids(k,1);
 %                     y_dist = centroids(k,2)-max_y(k);
@@ -461,23 +449,21 @@ for iter=1:1:end_iter
 %                     rotate_intv = Rot/rot_iter_invl;
 %                 end
 % 
-%                 theta_ori(k) = theta_rotate_guide_sector(centroids(k,1),centroids(k,2),max_x(k),max_y(k),rotate(k));
+%                 theta_ori(k) = theta_rotate_guide_sector(centroids(k,2),centroids(k,1),max_x(k),max_y(k),rotate(k));
 %                 rotate(k) = rotate(k) + rotate_intv;
             end
             size_Max = length(max_x);
-            [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,1,size_Max);
+            [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
             
             if(mod(iter,50) == 0)
-                subplot(1,3,3);
+                subplot(2,3,3);
                 imagesc(theta_ori);
                 title(sprintf('Phi at iteration = %.2d',iter));
                 axis square;
                 colorbar;
             end
     end
+
 end
 
 disp('All simulations complete!\n');
-
-%% Save all vars for debugging
-%save('workspace_var.mat');

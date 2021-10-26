@@ -19,7 +19,7 @@ for i=1:lenu
             phi_val(end+1) = 1;            
             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 
-            %% multi neuron
+            %% 2 neurons
 %             ind_i(end+1) = i+25;
 %             ind_i(end+1) = i-25;
 %             ind_j(end+1) = j+25;
@@ -27,6 +27,24 @@ for i=1:lenu
 %             
 %             phi_val(end+1) = 1;            
 %             phi_val(end+1) = 1;                    
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+            
+            
+            %% 3 neuron
+%             ind_i(end+1) = i-40;
+%             ind_i(end+1) = i+40;
+%             ind_i(end+1) = i+40;
+% 
+%             ind_j(end+1) = j;
+%             ind_j(end+1) = j+45;
+%             ind_j(end+1) = j-45;  
+%             
+%             phi_val(end+1) = 1;            
+%             phi_val(end+1) = 1;                    
+%             phi_val(end+1) = 1;      
+%             
+%             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 %             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 %             conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
 

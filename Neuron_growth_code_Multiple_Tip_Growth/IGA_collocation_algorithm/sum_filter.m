@@ -53,7 +53,8 @@ elseif method == 0
     TF = isoutlier(phi_sum_temp);
     phi_sum_temp(TF) = 0;
     phi_sum_temp(isnan(phi_sum_temp))=0;
-    cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.98);
+%     cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.98); %
+    cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.97);
 end
 phi_sum(isnan(phi_sum))=0;
 phi_sum(phi_sum<cutoff)=0;
