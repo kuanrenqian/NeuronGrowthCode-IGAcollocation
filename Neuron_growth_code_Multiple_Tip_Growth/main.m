@@ -1,36 +1,41 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 08/17/2021
+% 10/27/2021
 
 %% CleanUp
 close all;
 clear;
 clc;
 
-%% Including Path 
-addpath('./IGA_collocation_algorithm');
+% Including Path 
+addpath('../IGA_collocation_algorithm');
 
+%% Start Simulation Model
 disp('********************************************************************');
 disp('2D Phase-field Neuron Growth solver using IGA-Collocation');
 disp('********************************************************************');
 
-% diary 'log_Neuron_Growth'
+% save rng seed for repeatability
 rngSeed = rng('shuffle');
 save('./data/rngSeed','rngSeed');
 
-%% Variable Initialization
+% variable and png save frequency
+var_save_invl = 500;
+png_save_invl = 100;
+png_plot_invl = 50;
+
+%% Simulation Parameter Initialization
 % time stepping variables
 dtime = 1e-2;
 end_iter = 20000;
 
-% tolerance for NR method
-tol = 1e-4;
-
+% setup domain size outside main for modularity (main.m can remain the same
+% for different simulation cases)
+neuron_domain_setup
+ 
 % B-spline curve order (U,V direction)
 p = 3;
 q = 3;
-Nx = 60;
-Ny = 60;
 
 knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
 knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
@@ -45,12 +50,12 @@ kappa= 4;
 alph = 0.9; % changing name to alph cause alpha is a function
 pix=4.0*atan(1.0);
 alphOverPix = alph/pix;
-gamma = 15.0;
+gamma = 10.0;
 tau = 0.3;
 M_phi = 60;
 M_theta = 0.5*M_phi;
 s_coeff = 0.007;
-
+% s_coeff = 0.01;
 delta = 0.1;
 epsilonb = 0.04;
 
@@ -62,19 +67,22 @@ beta_t = 0.001;
 Diff = 4;
 source_coeff = 0.05;
 
+% tolerance for NR iterations in phi equation
+tol = 1e-4;
+
 % Seed size
 seed_radius = 20;
+% initializing phi and concentration based on neuron seed position
+[phi,conct] = initialize_neurite_growth(seed_radius,lenu,lenv,numNeuron); 
 
 % Expanding domain parameters
-BC_tol = 10;
-expd_coef = 1.2;
+BC_clearance = 10;
+expd_sz = 10;
 
-% initializing phi and concentration based on neuron seed position
-[phi,conct] = initialize_neurite_growth(seed_radius, lenu, lenv);
+disp(' Simulation Parameter Initialization - Done!');
 
-disp('Base variable - initialization done!');
-
-%% Constructing coef matrix
+%% Iterating Variable Initialization
+% constructing collocation basis
 order_deriv = 2;    % highest order of derivatives to calculate
 [cm,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
 lap = cm.N2uNv + cm.NuN2v;
@@ -88,8 +96,7 @@ theta=cm.NuNv\reshape(rand(lenu,lenv),lenu*lenv,1);
 theta_ori = zeros(lenu,lenv);
 tempr = zeros([lenu*lenv,1]);
 
-conc_t_new = conct;
-
+% initializing initial phi,theta,tempr for boundary condition (Dirichlet)
 phi_initial = reshape(phi,lenu,lenv);
 theta_initial = reshape(theta,lenu,lenv);
 tempr_initial = reshape(tempr,lenu,lenv);
@@ -103,12 +110,15 @@ end
 phi_initial = reshape(phi_initial,lenu*lenv,1);
 theta_initial  = reshape(theta_initial,lenu*lenv,1);
 tempr_initial  = reshape(tempr_initial,lenu*lenv,1);
+save('./data/phi_on_cp_initial','phi');
+save('./data/theta_on_cp_initial','theta');
+save('./data/tempr_on_cp_initial','tempr');
 
 % plotting initial phi
 set(gcf,'position',[100,100,800,400]);
 colormap parula;
 
-% ID for boundary location (suppress 4 edges)
+% binary ID for boundary location (define 4 edges)
 % id = 1 means there is bc
 bcid = zeros([lenu,lenv]);
 for i = 1:lenu
@@ -119,40 +129,25 @@ for i = 1:lenu
 end
 bcid = reshape(bcid,lenu*lenv,1);
 
-disp('Phi,conc,theta,tempr,bcid - initialization done!');
+disp('Iterating Variable Initialization - Done!');
 disp('********************************************************************');
 
-%% Transient iteration computation
-disp('Starting Neuron Growth Model transient iterations...');
-
-theta = sparse(theta);
-tempr = sparse(tempr);
-bcid = sparse(bcid);
-
+%% Neuron Growth Stage Variable Initialization
 iter_stage2_begin = 500;
-iter_stage3_begin = 6000;
-iter_stage45_begin = 15000;
+iter_stage3_begin = 7000;
+iter_stage45_begin = 17000;
 rot_iter_invl = 500;
 
 Rot = zeros(1,20);
 rotate = zeros(1,20);
 rotate_intv = zeros(1,20);
-size_Max = 0;
 
-var_save_invl = 500;
-png_save_invl = 100;
+disp('Neuron Growth Stage Variable Initialization - Done!');
+disp('********************************************************************');
 
-save('./data/phi_on_cp_initial','phi');
-save('./data/theta_on_cp_initial','theta');
-save('./data/tempr_on_cp_initial','tempr');
-
-Max_x = 0;
-Max_y = 0;
-delta_L = 1;
-term_change = 1;
-
-tic
-% transient iterations
+%% Transient iteration computation
+disp('Starting Neuron Growth Model transient iterations...');
+tic;
 iter = 0;
 while iter <= end_iter
     iter = iter + 1;
@@ -180,7 +175,7 @@ while iter <= end_iter
         E = alphOverPix*atan(gamma*term_change.*(1-NNtempr));
         E(abs(nnT)==0) = 0;
         
-        if(mod(iter,50) == 0)
+        if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,5);
             phi_plot = reshape(cm.NuNv*phi,lenu,lenv);
             imagesc(reshape(E,lenu,lenv)+phi_plot);
@@ -195,10 +190,16 @@ while iter <= end_iter
     phiK = phi;
     % residual for NR method (make sure it is larger than tolerance at the beginning)
     R = 2*tol;
-    
-    % magnitude of theta gradient (offset by 1e-12 to avoid division by zero)
-    mag_grad_theta = sparse(sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta))+1e-12);
-    C1 = sparse(E-0.5+6.*s_coeff.*mag_grad_theta);
+
+    if iter == 1
+        % theta does not evolve over time, only need to compute initially or expanding domain
+        % magnitude of theta gradient
+        mag_grad_theta = sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta));
+        C0 = 0.5+6*s_coeff*mag_grad_theta;
+    end
+    % splitted C0 from C1 because E mag_grad_theta dimension mismatch
+    % during domain expansion. Compute here to fix conflict
+    C1 = E-C0;
 
     % NR method calculation
     ind_check = 0;
@@ -260,15 +261,25 @@ while iter <= end_iter
     %% Temperature (Implicit method)
     temprLHS = cm.NuNv-3*dt_t*lap;
     temprRHS = kappa*(cm.NuNv*phiK-cm.NuNv*phi)+NNtempr;
-
     [temprLHS, temprRHS] = StiffMatSetupBCID(temprLHS, temprRHS,bcid,tempr_initial);
     tempr_new = temprLHS\temprRHS;
+
+    %% Theta (Implicit method)
+%     lap_theta = lap*theta;
+%     P2 = 10*NNpk.*NNpk.*NNpk-15*NNpk.*NNpk.*NNpk.*NNpk+6*NNpk.*NNpk.*NNpk.*NNpk.*NNpk;
+%     P2 = P2.*s_coeff.*mag_grad_theta;
+%     
+%     thetaLHS = (cm.NuNv-dt_t*M_theta.*banded_dot_star(P2,lap_flip,lap_id));
+%     thetaRHS = (cm.NuNv*theta);
+%     thetaRHS = thetaRHS - thetaLHS*theta_initial;
+%     [thetaLHS, thetaRHS] = StiffMatSetupBCID(thetaLHS, thetaRHS,bcid,theta_initial);
+%     theta_new = thetaLHS\thetaRHS;
 
     %% Tubulin concentration (Implicit method)
     NNp = cm.NuNv*phi;
     nnpk = round(NNpk);
 
-    if iter == 1
+    if iter == 1 % save initial lap phi, this var will not change and will be used throughout the simulation
         initial_LAPpk = lap*phi;
         sum_lap_phi = sum(initial_LAPpk.*initial_LAPpk);
         save(sprintf('./data/initial_LAPpk_%2d',iter),'initial_LAPpk');
@@ -296,8 +307,8 @@ while iter <= end_iter
     tempr = tempr_new;
     conc_t = conc_t_new;
 
-    %% Plotting figures
-    if(mod(iter,50) == 0 || iter == 1)
+    %% Plotting figures and check for domain expansion
+    if(mod(iter,png_plot_invl) == 0 || iter == 1)
         phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
         tempr_plot = reshape(cm.NuNv*tempr_new,lenu,lenv);
         conct_plot = reshape(cm.NuNv*conc_t_new,lenu,lenv);
@@ -308,19 +319,19 @@ while iter <= end_iter
         axis square;
         colorbar;
 
-        subplot(2,3,3);
+        subplot(2,3,2);
         imagesc(tempr_plot);
         title(sprintf('T at iteration = %.2d',iter));
         axis square;
         colorbar;
 
-        subplot(2,3,4);
+        subplot(2,3,3);
         imagesc(conct_plot);
         title(sprintf('Tubulin at iteration = %.2d',iter));
         axis square;
         colorbar;
         
-        subplot(2,3,6);
+        subplot(2,3,4);
         imagesc(reshape(initial_LAPpk,lenu,lenv));
         title(sprintf('initial_LAPpk at iteration = %.2d',iter));
         axis square;
@@ -329,6 +340,7 @@ while iter <= end_iter
         % plot current iteration
         drawnow;
 
+        % save picture
         if(mod(iter,png_save_invl) == 0)
             try
                 saveas(gcf,sprintf('./data/NeuronGrowth_%.2d.png',iter));
@@ -337,16 +349,17 @@ while iter <= end_iter
             end
         end
         
-        if(iter~=1 && (max(max(phi_plot(1:BC_tol,:))) > 0.5 || ...
-                max(max(phi_plot(:,1:BC_tol))) > 0.5 || ...
-                max(max(phi_plot(end-BC_tol:end,:))) > 0.5 || ...
-                max(max(phi_plot(:,end-BC_tol:end))) > 0.5))
+        % check for domain expansion
+        if(iter~=1 && (max(max(phi_plot(1:BC_clearance,:))) > 0.5 || ...
+                max(max(phi_plot(:,1:BC_clearance))) > 0.5 || ...
+                max(max(phi_plot(end-BC_clearance:end,:))) > 0.5 || ...
+                max(max(phi_plot(:,end-BC_clearance:end))) > 0.5))
            
             disp('********************************************************************');
             disp('Expanding Domain...');
 
-            Nx = Nx+10;
-            Ny = Ny+10;
+            Nx = Nx+expd_sz;
+            Ny = Ny+expd_sz;
 
             knotvectorU = [0,0,0,linspace(0,Nx,Nx+1),Nx,Nx,Nx].';
             knotvectorV = [0,0,0,linspace(0,Ny,Ny+1),Ny,Ny,Ny].';
@@ -367,11 +380,15 @@ while iter <= end_iter
 
             phiK = phi;
 
+            mag_grad_theta = sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta));
+            C0 = 0.5+6*s_coeff*mag_grad_theta;
+
             toc
             disp('********************************************************************');
         end
     end
     
+    % save variables
     if(mod(iter,var_save_invl)==0 || iter == 0)
         try
             save(sprintf('./data/phi_on_cp_%2d',iter),'phi');
@@ -382,22 +399,16 @@ while iter <= end_iter
         end
     end
     
+    %% Growth stage operations
     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
-
-%     if (iter == 1)
-%         max_x = floor(lenu/2);
-%         max_y = floor(lenv/2);
-
-    Max_x = 0;
-    Max_y = 0;
-
+    % stage 2 or 4&5
     if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
             tip = sum_filter(full(phi_plot),0);
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
             [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
-
+    % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
 
             phi_id = full(phi_plot);
@@ -422,12 +433,9 @@ while iter <= end_iter
                     end
                 end
 
-%                 dist_k = reshape(dist(:,:,k),lenu*lenv,1);
                 dist_k = dist(:,:,k);
-%                 [max_dist,max_index] = max(dist_k);
-                dist_k(dist_k<=0.9*max(dist_k)) = 0;
-                tip = sum_filter(dist_k,0);
-                regionalMaxima = imregionalmax(full(tip));
+                dist_k(dist_k<=0.9*max(max(dist_k))) = 0;
+                regionalMaxima = imregionalmax(dist_k);
                 [Max_y,Max_x] = find(regionalMaxima);
 
                 max_x = [max_x,Max_x];
@@ -455,8 +463,8 @@ while iter <= end_iter
             size_Max = length(max_x);
             [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
             
-            if(mod(iter,50) == 0)
-                subplot(2,3,3);
+            if(mod(iter,png_plot_invl) == 0)
+                subplot(2,3,6);
                 imagesc(theta_ori);
                 title(sprintf('Phi at iteration = %.2d',iter));
                 axis square;
