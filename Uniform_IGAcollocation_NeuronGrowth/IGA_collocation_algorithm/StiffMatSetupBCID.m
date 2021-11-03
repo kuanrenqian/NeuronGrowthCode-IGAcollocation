@@ -1,7 +1,7 @@
 function [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,N)
 
 bcdof = find(bcid==1);
-diag_lhs = spdiags(coll_Lhs,0).*(1-bcid)+bcid;
+diag_lhs = bsxfun(@times,spdiags(coll_Lhs,0),(1-bcid))+bcid;
 coll_Lhs(bcdof,:) = 0;
 coll_Lhs(:,bcdof) = 0;
 coll_Rhs(bcdof) = N(bcdof);
