@@ -88,19 +88,19 @@ for i=1:lenu
                 conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
                 conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
             elseif numNeuron == 6 % 6 neurons
-                ind_i(end+1) = i-85;
-                ind_i(end+1) = i-10;
-                ind_i(end+1) = i+85;
-                ind_i(end+1) = i-85;
-                ind_i(end+1) = i+10;
-                ind_i(end+1) = i+85;
-                
-                ind_j(end+1) = j-15;
-                ind_j(end+1) = j-85;
-                ind_j(end+1) = j-85;  
-                ind_j(end+1) = j+85;  
-                ind_j(end+1) = j+85;  
-                ind_j(end+1) = j+15;  
+                ind_i(end+1) = i-100;
+                ind_i(end+1) = i;
+                ind_i(end+1) = i+100;
+                ind_i(end+1) = i-100;
+                ind_i(end+1) = i;
+                ind_i(end+1) = i+100;
+
+                ind_j(end+1) = j-65;
+                ind_j(end+1) = j-65;
+                ind_j(end+1) = j-65;  
+                ind_j(end+1) = j+65;  
+                ind_j(end+1) = j+65;  
+                ind_j(end+1) = j+65;  
                 
                 phi_val(end+1) = 1;            
                 phi_val(end+1) = 1;                    
@@ -115,6 +115,39 @@ for i=1:lenu
                 conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
                 conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
                 conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+            elseif numNeuron == 7 % 7 neurons
+                ind_i(end+1) = i-95;
+                ind_i(end+1) = i-45;
+                ind_i(end+1) = i+45;
+                ind_i(end+1) = i-45;
+                ind_i(end+1) = i+45;
+                ind_i(end+1) = i+95;
+                ind_i(end+1) = i;
+
+                ind_j(end+1) = j;
+                ind_j(end+1) = j-95;
+                ind_j(end+1) = j-95;  
+                ind_j(end+1) = j+95;  
+                ind_j(end+1) = j+95;  
+                ind_j(end+1) = j;  
+                ind_j(end+1) = j;  
+
+                phi_val(end+1) = 1;            
+                phi_val(end+1) = 1;                    
+                phi_val(end+1) = 1;      
+                phi_val(end+1) = 1;      
+                phi_val(end+1) = 1;      
+                phi_val(end+1) = 1;      
+                phi_val(end+1) = 1;      
+                
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+                conct_val(end+1) = (0.5+0.5*tanh((sqrt(seed)-r)/2));
+            
             end
         end
     end

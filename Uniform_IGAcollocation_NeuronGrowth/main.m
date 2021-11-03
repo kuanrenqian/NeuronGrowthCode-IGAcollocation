@@ -27,7 +27,7 @@ png_plot_invl = 50;
 %% Simulation Parameter Initialization
 % time stepping variables
 dtime = 1e-2;
-end_iter = 20000;
+end_iter = 35000;
 
 % setup domain size outside main for modularity (main.m can remain the same
 % for different simulation cases)
@@ -55,7 +55,6 @@ tau = 0.3;
 M_phi = 60;
 M_theta = 0.5*M_phi;
 s_coeff = 0.007;
-% s_coeff = 0.01;
 delta = 0.1;
 epsilonb = 0.04;
 
@@ -65,7 +64,7 @@ g = 0.1;
 alpha_t = 0.001;
 beta_t = 0.001;
 Diff = 4;
-source_coeff = 0.05;
+source_coeff = 0.012;
 
 % tolerance for NR iterations in phi equation
 tol = 1e-4;
@@ -96,6 +95,11 @@ theta=cm.NuNv\reshape(rand(lenu,lenv),lenu*lenv,1);
 theta_ori = zeros(lenu,lenv);
 tempr = zeros([lenu*lenv,1]);
 
+% theta does not evolve over time, only need to compute initially or expanding domain
+% magnitude of theta gradient
+mag_grad_theta = sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta));
+C0 = 0.5+6*s_coeff*mag_grad_theta;
+    
 % initializing initial phi,theta,tempr for boundary condition (Dirichlet)
 phi_initial = reshape(phi,lenu,lenv);
 theta_initial = reshape(theta,lenu,lenv);
@@ -134,8 +138,8 @@ disp('********************************************************************');
 
 %% Neuron Growth Stage Variable Initialization
 iter_stage2_begin = 500;
-iter_stage3_begin = 7000;
-iter_stage45_begin = 17000;
+iter_stage3_begin = iter_stage2_begin+10000;
+iter_stage45_begin = iter_stage3_begin+12000;
 rot_iter_invl = 500;
 
 Rot = zeros(1,20);
@@ -172,7 +176,7 @@ while iter <= end_iter
         term_change = (regular_Heiviside_fun(delta_L));
         term_change(nnT==1)=1;
 
-        E = alphOverPix*atan(gamma*term_change.*(1-NNtempr));
+        E = alphOverPix*atan(gamma*bsxfun(@times,term_change,1-NNtempr));
         E(abs(nnT)==0) = 0;
         
         if(mod(iter,png_plot_invl) == 0)
@@ -191,12 +195,6 @@ while iter <= end_iter
     % residual for NR method (make sure it is larger than tolerance at the beginning)
     R = 2*tol;
 
-    if iter == 1
-        % theta does not evolve over time, only need to compute initially or expanding domain
-        % magnitude of theta gradient
-        mag_grad_theta = sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta));
-        C0 = 0.5+6*s_coeff*mag_grad_theta;
-    end
     % splitted C0 from C1 because E mag_grad_theta dimension mismatch
     % during domain expansion. Compute here to fix conflict
     C1 = E-C0;
@@ -220,22 +218,22 @@ while iter <= end_iter
         LAPpk = lap*phiK;
         
         % term a2
-        out{1}  = 2*NNa.*N1Na.*N1Npk+NNa.*NNa.*LAPpk ...
-            +2*NNa.*NN1a.*NN1pk;
+        out{1}  = 2*bsxfun(@times,bsxfun(@times,NNa,N1Na),N1Npk)+bsxfun(@times,bsxfun(@times,NNa,NNa),LAPpk) ...
+            +2*bsxfun(@times,bsxfun(@times,NNa,NN1a),NN1pk);
         % termadx
-        out{2} = N1Naap.*NN1pk+NNaap.*N1N1pk;
+        out{2} = bsxfun(@times,N1Naap,NN1pk)+bsxfun(@times,NNaap,N1N1pk);
         %termady
-        out{3} = NN1aap.*N1Npk+NNaap.*N1N1pk;
+        out{3} = bsxfun(@times,NN1aap,N1Npk)+bsxfun(@times,NNaap,N1N1pk);
         % termNL
-        out{4} = -NNpk.*NNpk.*NNpk+(1-C1).*NNpk.*NNpk+(C1).*NNpk;
+        out{4} = -bsxfun(@times,bsxfun(@times,NNpk,NNpk),NNpk)+bsxfun(@times,bsxfun(@times,(1-C1),NNpk),NNpk)+bsxfun(@times,C1,NNpk);
         if dt_t==0 % these terms only needs to be calculated once
             % terma2_deriv
-            t5 =  banded_dot_star((2*NNa.*N1Na+N1Naap),cm.N1uNv_flip,cm.N1uNv_id) +...
-                  banded_dot_star(NNa.*NNa,lap_flip,lap_id) +...
-                  banded_dot_star((2*NNa.*NN1a-N1Naap),cm.NuN1v_flip,cm.NuN1v_id);
+            t5 =  banded_dot_star((2*bsxfun(@times,NNa,N1Na)+N1Naap),cm.N1uNv_flip,cm.N1uNv_id) +...
+                  banded_dot_star(bsxfun(@times,NNa,NNa),lap_flip,lap_id) +...
+                  banded_dot_star((2*bsxfun(@times,NNa,NN1a)-N1Naap),cm.NuN1v_flip,cm.NuN1v_id);
         end
         % termNL_deriv
-        temp = (-3*NNpk.*NNpk+2*(1-C1).*NNpk+C1);
+        temp = (-3*bsxfun(@times,NNpk,NNpk)+2*bsxfun(@times,(1-C1),NNpk)+C1);
         t6 = banded_dot_star(temp, cm.NuNv_flip, cm.NuNv_id);
         
         R = M_phi/tau*(out{1}-out{2}+out{3}+out{4});
@@ -264,39 +262,28 @@ while iter <= end_iter
     [temprLHS, temprRHS] = StiffMatSetupBCID(temprLHS, temprRHS,bcid,tempr_initial);
     tempr_new = temprLHS\temprRHS;
 
-    %% Theta (Implicit method)
-%     lap_theta = lap*theta;
-%     P2 = 10*NNpk.*NNpk.*NNpk-15*NNpk.*NNpk.*NNpk.*NNpk+6*NNpk.*NNpk.*NNpk.*NNpk.*NNpk;
-%     P2 = P2.*s_coeff.*mag_grad_theta;
-%     
-%     thetaLHS = (cm.NuNv-dt_t*M_theta.*banded_dot_star(P2,lap_flip,lap_id));
-%     thetaRHS = (cm.NuNv*theta);
-%     thetaRHS = thetaRHS - thetaLHS*theta_initial;
-%     [thetaLHS, thetaRHS] = StiffMatSetupBCID(thetaLHS, thetaRHS,bcid,theta_initial);
-%     theta_new = thetaLHS\thetaRHS;
-
     %% Tubulin concentration (Implicit method)
     NNp = cm.NuNv*phi;
     nnpk = round(NNpk);
 
     if iter == 1 % save initial lap phi, this var will not change and will be used throughout the simulation
         initial_LAPpk = lap*phi;
-        sum_lap_phi = sum(initial_LAPpk.*initial_LAPpk);
+        sum_lap_phi = sum(bsxfun(@times,initial_LAPpk,initial_LAPpk));
         save(sprintf('./data/initial_LAPpk_%2d',iter),'initial_LAPpk');
     end
     
-    term_diff = Diff.*(banded_dot_star(N1Npk,cm.N1uNv_flip,cm.N1uNv_id) + ...
+    term_diff = Diff*(banded_dot_star(N1Npk,cm.N1uNv_flip,cm.N1uNv_id) + ...
         banded_dot_star(NNpk,lap_flip,lap_id) + ...
         banded_dot_star(NN1pk,cm.NuN1v_flip,cm.NuN1v_id));
-    term_alph = alpha_t.*(banded_dot_star(N1Npk,cm.NuNv_flip,cm.NuNv_id) + ...
+    term_alph = alpha_t*(banded_dot_star(N1Npk,cm.NuNv_flip,cm.NuNv_id) + ...
         banded_dot_star(NNpk,cm.N1uNv_flip,cm.N1uNv_id) + ...
         banded_dot_star(NN1pk,cm.NuNv_flip,cm.NuNv_id) + ...
         banded_dot_star(NNpk,cm.NuN1v_flip,cm.NuN1v_id));
-    term_beta = beta_t.*banded_dot_star(NNpk,cm.NuNv_flip,cm.NuNv_id);
-    term_source = source_coeff/sum_lap_phi*initial_LAPpk.*initial_LAPpk;
+    term_beta = beta_t*banded_dot_star(NNpk,cm.NuNv_flip,cm.NuNv_id);
+    term_source = source_coeff/sum_lap_phi*bsxfun(@times,initial_LAPpk,initial_LAPpk);
 
-    conc_t_RHS = dt_t*term_source-NNct.*(NNpk-NNp)+NNp.*NNct;
-    conc_t_LHS = NNp.*cm.NuNv-dt_t.*(term_diff-term_alph-term_beta);
+    conc_t_RHS = dt_t/2*term_source-bsxfun(@times,NNct,(NNpk-NNp))+bsxfun(@times,NNp,NNct);
+    conc_t_LHS = bsxfun(@times,NNp,cm.NuNv)-dt_t/2*(term_diff-term_alph-term_beta);
     bcid_t = (~nnpk);
     [conc_t_LHS, conc_t_RHS] = StiffMatSetupBCID(conc_t_LHS, conc_t_RHS,bcid_t,zeros(lenu*lenv,1));
     conc_t_new = conc_t_LHS\conc_t_RHS;
@@ -393,6 +380,7 @@ while iter <= end_iter
         try
             save(sprintf('./data/phi_on_cp_%2d',iter),'phi');
             save(sprintf('./data/tempr_on_cp_%2d',iter),'tempr');
+            save(sprintf('./data/theta_on_cp_%2d',iter),'theta');
             save(sprintf('./data/conct_on_cp_%2d',iter),'conc_t');
         catch
             fprintf('data write error skipped.\n');
@@ -433,32 +421,11 @@ while iter <= end_iter
                     end
                 end
 
-                dist_k = dist(:,:,k);
-                dist_k(dist_k<=0.9*max(max(dist_k))) = 0;
-                regionalMaxima = imregionalmax(dist_k);
-                [Max_y,Max_x] = find(regionalMaxima);
+                dist_k = reshape(dist(:,:,k),lenu*lenv,1);
+                [max_dist,max_index] = max(dist_k);
+                max_x(k) = ceil(max_index/lenu);
+                max_y(k) = rem(max_index,lenu);
 
-                max_x = [max_x,Max_x];
-                max_y = [max_y,Max_y];
-
-%                 for l = 1:length(max_index)
-%                     max_x(end+1) = ceil(max_index(l)/lenu);
-%                     max_y(end+1) = rem(max_index(l),lenu);
-%                 end
-%                 if(iter == iter_stage3_begin)
-%                     x_dist = max_x(k)-centroids(k,1);
-%                     y_dist = centroids(k,2)-max_y(k);
-%                     axon_angle = atan2(x_dist,y_dist);
-%                     rotate = axon_angle;
-%                 end
-
-%                 if ( mod(iter,rot_iter_invl) == 0 || expd_state == 1)
-%                     Rot = rand*pi/2-pi/4;
-%                     rotate_intv = Rot/rot_iter_invl;
-%                 end
-% 
-%                 theta_ori(k) = theta_rotate_guide_sector(centroids(k,2),centroids(k,1),max_x(k),max_y(k),rotate(k));
-%                 rotate(k) = rotate(k) + rotate_intv;
             end
             size_Max = length(max_x);
             [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);

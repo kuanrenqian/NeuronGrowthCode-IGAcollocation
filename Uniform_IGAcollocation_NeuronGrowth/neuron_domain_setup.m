@@ -16,6 +16,9 @@ elseif numNeuron == 5 % 5 neurons
     Nx = 220;
     Ny = 220;
 elseif numNeuron == 6 % 6 neurons
+    Nx = 260;
+    Ny = 260;
+elseif numNeuron == 7 % 7 neurons
     Nx = 250;
     Ny = 250;
 end
