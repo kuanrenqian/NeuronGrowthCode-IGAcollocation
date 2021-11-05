@@ -111,10 +111,9 @@ colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
         'L_NuNv',L_NuNv,'U_NuNv',U_NuNv,'N1uNv',N1uNv,'N1uNv_flip',N1uNv_flip,...
         'N1uNv_id',N1uNv_id,'NuN1v',N1uNv,'NuN1v_flip',NuN1v_flip,'NuN1v_id',...
         NuN1v_id,'N1uN1v', N1uN1v, 'N2uNv',N2uNv,'NuN2v',NuN2v,'N2uN2v',N2uN2v);
-    
-%%
 
-% function [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points,dersU] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv,sprs)
+%% Backup code
+% %#codegen
 % % kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv)
 % % This function calculates all basis component for IGA-collocation 2D structured grid
 % % kqCollocationDers() takes 2 knotvectors in u and v direction with corresponding
@@ -131,7 +130,7 @@ colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
 % % knotvectorV = knotvectorV/max(knotvectorV);
 % 
 % k=1;
-% coll_p = zeros(length(knotvectorU)-p,2);
+% coll_p = zeros((length(knotvectorU)-p)*(length(knotvectorV)-q),2);
 % for i = 1:length(knotvectorU)-p-1
 %     coordx = sum(knotvectorU(i+1:i+p))/p;
 %     for j = 1:length(knotvectorV)-q-1
@@ -141,18 +140,6 @@ colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
 %     end
 % end
 % size_collpts = sqrt(length(coll_p));
-% 
-% %Control points
-% size_cp = size_collpts-2;
-% Control_points = zeros(size_cp^2,2);
-% k=1;
-% for i = 1:size_cp
-%     for j = 1:size_cp
-%         Control_points(k,1) = knotvectorU(i+p);
-%         Control_points(k,2) = knotvectorV(j+q);
-%         k = k+1;
-%     end
-% end
 % 
 % NuNv = zeros([length(coll_p),lenu*lenv]);
 % N1uNv = NuNv;
@@ -165,7 +152,7 @@ colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
 % % number of basis function (setup this way*) (current version works)
 % % using a modified version of derbasisfun3, need to fix this!!!!!
 % nobu = length(knotvectorU)-p-2; 
-% nobv = length(knotvectorV)-p-2;
+% nobv = length(knotvectorV)-q-2;
 % 
 % knotSpanU = zeros([size_collpts^2,1]);
 % dersU = zeros([3,p+1,size_collpts^2]);
@@ -212,34 +199,17 @@ colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
 %                 N2uN2v(k,ind) = N2u(l)*N2v(m); % assigning N2i*N2j value
 %             end
 %         end
-% 
-% %         sNuNv = sum(NuNv(k,:));
-% %         sN1uNv = sum(N1uNv(k,:));
-% %         sNuN1v = sum(NuN1v(k,:));
-% %         sN2uNv = sum(N2uNv(k,:));
-% %         sNuN2v = sum(NuN2v(k,:));
-% %         sN2uN2v = sum(N2uN2v(k,:));
-% % 
-% %         NuNv(k,:) = NuNv(k,:)/sNuNv;
-% %         N1uNv(k,:) = N1uNv(k,:)/sNuNv - NuNv(k,:)*sN1uNv/(sNuNv^2);
-% %         NuN1v(k,:) = NuN1v(k,:)/sNuNv - NuNv(k,:)*sNuN1v/(sNuNv^2);
-% % 
-% %         N2uNv(k,:) = N2uNv(k,:)/sNuNv - (2*N1uNv(k,:)*sN1uNv+NuNv(k,:)*sN2uNv)/(sNuNv^2) ...
-% %             + (2*NuNv(k,:)*sN1uNv^2)/(sNuNv^3);
-% %          NuN2v(k,:) = NuN2v(k,:)/sNuNv - (2*NuN1v(k,:)*sNuN1v+NuNv(k,:)*sNuN2v)/(sNuNv^2) ...
-% %             + (2*NuNv(k,:)*sNuN1v^2)/(sNuNv^3);       
-% % 
-% %         N2uN2v(k,:) = N2uNv(k,:)/sNuNv - (N1uNv(k,:)*sNuN1v+NuN1v(k,:)*sN1uNv+NuNv(k,:)*sN2uN2v)/(sNuNv^2) ... 
-% %             +(2*NuNv(k,:)*sN1uNv*sNuN1v)/(sNuNv^3);
 %     end
 % end
 % 
-% if(sprs ==1)
-%     NuNv = sparse(NuNv);
-%     N1uNv = sparse(N1uNv);
-%     NuN1v = sparse(NuN1v);
-%     N1uN1v = sparse(N1uN1v);
-%     N2uNv = sparse(N2uNv);
-%     NuN2v = sparse(NuN2v);
-%     N2uN2v = sparse(N2uN2v);
-% end
+% % store the LU decomposition of NuNv
+% [L_NuNv, U_NuNv] = lu(NuNv);
+% 
+% % store the diagonals of NuNv, N1uNv, NuN1v
+% [NuNv_flip, NuNv_id] = extract_diags(NuNv);
+% [N1uNv_flip, N1uNv_id] = extract_diags(N1uNv);
+% [NuN1v_flip, NuN1v_id] = extract_diags(NuN1v);
+% colmats = struct('NuNv', NuNv, 'NuNv_flip', NuNv_flip, 'NuNv_id', NuNv_id,...
+%         'L_NuNv',L_NuNv,'U_NuNv',U_NuNv,'N1uNv',N1uNv,'N1uNv_flip',N1uNv_flip,...
+%         'N1uNv_id',N1uNv_id,'NuN1v',N1uNv,'NuN1v_flip',NuN1v_flip,'NuN1v_id',...
+%         NuN1v_id,'N1uN1v', N1uN1v, 'N2uNv',N2uNv,'NuN2v',NuN2v,'N2uN2v',N2uN2v);
