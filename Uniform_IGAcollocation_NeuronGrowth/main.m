@@ -8,7 +8,7 @@ clear;
 clc;
 
 % Including Path 
-addpath('../IGA_collocation_algorithm');
+addpath('./IGA_collocation_algorithm');
 
 %% Start Simulation Model
 disp('********************************************************************');
@@ -391,11 +391,11 @@ while iter <= end_iter
     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
     % stage 2 or 4&5
     if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
-            tip = sum_filter(full(phi_plot),0);
+            tip = sum_filter_mex(full(phi_plot),0);
             regionalMaxima = imregionalmax(full(tip));
             [Max_y,Max_x] = find(regionalMaxima);
             size_Max = length(Max_x);
-            [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
+            [theta_ori] = theta_rotate_mex(lenu,lenv,Max_x,Max_y,size_Max);
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
 
@@ -428,7 +428,7 @@ while iter <= end_iter
 
             end
             size_Max = length(max_x);
-            [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
+            [theta_ori] = theta_rotate_mex(lenu,lenv,max_x,max_y,size_Max);
             
             if(mod(iter,png_plot_invl) == 0)
                 subplot(2,3,6);
