@@ -15,6 +15,7 @@ L = bwconncomp(phi,4);
 ID = zeros(size(phi));
 for i = 1:L.NumObjects
     ID(L.PixelIdxList{i}) = i;
+%     ID(L.RegionIndices(i)) = i; %for mex generation, somehow struct is different in mex
 end
 
 % loop through and calculate sum of phi values around i,j
@@ -55,6 +56,8 @@ elseif method == 0
     phi_sum_temp(isnan(phi_sum_temp))=0;
 %     cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.98); %
     cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.97);
+else
+    cutoff = 1; % dummy value just in case
 end
 phi_sum(isnan(phi_sum))=0;
 phi_sum(phi_sum<cutoff)=0;

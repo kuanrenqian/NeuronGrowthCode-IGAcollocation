@@ -391,52 +391,48 @@ while iter <= end_iter
     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
     % stage 2 or 4&5
     if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
-            tip = sum_filter_mex(full(phi_plot),0);
-            regionalMaxima = imregionalmax(full(tip));
-            [Max_y,Max_x] = find(regionalMaxima);
-            size_Max = length(Max_x);
-            [theta_ori] = theta_rotate_mex(lenu,lenv,Max_x,Max_y,size_Max);
+        theta_ori = growthStages2_mex(phi_plot);
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
 
-            phi_id = full(phi_plot);
-            [Nx,Ny] = size(phi_id);
-            phi_id = round(phi_id);
-            phi_sum = zeros(Nx,Ny);
+        phi_id = full(phi_plot);
+        [Nx,Ny] = size(phi_id);
+        phi_id = round(phi_id);
+        phi_sum = zeros(Nx,Ny);
 
-            L = bwconncomp(phi_id,4);
-            S = regionprops(L,'Centroid');
-            centroids = floor(cat(1,S.Centroid));
-            
-            ID = zeros(size(phi_id));
-            dist= zeros(lenu,lenv,L.NumObjects);
+        L = bwconncomp(phi_id,4);
+        S = regionprops(L,'Centroid');
+        centroids = floor(cat(1,S.Centroid));
 
-            max_x = [];
-            max_y = [];
-            for k = 1:L.NumObjects
-                ID(L.PixelIdxList{k}) = k;
-                for i = 1:lenu
-                    for j = 1:lenv
-                        dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,2))^2+(j-centroids(k,1))^2);
-                    end
+        ID = zeros(size(phi_id));
+        dist= zeros(lenu,lenv,L.NumObjects);
+
+        max_x = [];
+        max_y = [];
+        for k = 1:L.NumObjects
+            ID(L.PixelIdxList{k}) = k;
+            for i = 1:lenu
+                for j = 1:lenv
+                    dist(i,j,k) = (ID(i,j) == k)*sqrt((i-centroids(k,2))^2+(j-centroids(k,1))^2);
                 end
-
-                dist_k = reshape(dist(:,:,k),lenu*lenv,1);
-                [max_dist,max_index] = max(dist_k);
-                max_x(k) = ceil(max_index/lenu);
-                max_y(k) = rem(max_index,lenu);
-
             end
-            size_Max = length(max_x);
-            [theta_ori] = theta_rotate_mex(lenu,lenv,max_x,max_y,size_Max);
-            
-            if(mod(iter,png_plot_invl) == 0)
-                subplot(2,3,6);
-                imagesc(theta_ori);
-                title(sprintf('Phi at iteration = %.2d',iter));
-                axis square;
-                colorbar;
-            end
+
+            dist_k = reshape(dist(:,:,k),lenu*lenv,1);
+            [max_dist,max_index] = max(dist_k);
+            max_x(k) = ceil(max_index/lenu);
+            max_y(k) = rem(max_index,lenu);
+
+        end
+        size_Max = length(max_x);
+        [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
+
+        if(mod(iter,png_plot_invl) == 0)
+            subplot(2,3,6);
+            imagesc(theta_ori);
+            title(sprintf('Phi at iteration = %.2d',iter));
+            axis square;
+            colorbar;
+        end
     end
 
 end
