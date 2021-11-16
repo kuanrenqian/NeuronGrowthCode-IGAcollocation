@@ -7,8 +7,8 @@ elseif numNeuron == 2 % 2 neurons
     Nx = 140;
     Ny = 140;
 elseif numNeuron == 3 % 3 neurons
-    Nx = 160;
-    Ny = 160;
+    Nx = 170;
+    Ny = 170;
 elseif numNeuron == 4 % 4 neurons
     Nx = 200;
     Ny = 200;

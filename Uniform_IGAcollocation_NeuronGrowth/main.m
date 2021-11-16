@@ -1,6 +1,6 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 10/27/2021
+% 11/16/2021
 
 %% CleanUp
 close all;
@@ -59,8 +59,8 @@ delta = 0.1;
 epsilonb = 0.04;
 
 % Tubulin parameters
-r = 1e6;
-g = 0.1;
+r = 500;
+g = 0.001;
 alpha_t = 0.001;
 beta_t = 0.001;
 Diff = 4;
@@ -139,12 +139,7 @@ disp('********************************************************************');
 %% Neuron Growth Stage Variable Initialization
 iter_stage2_begin = 500;
 iter_stage3_begin = iter_stage2_begin+10000;
-iter_stage45_begin = iter_stage3_begin+12000;
-rot_iter_invl = 500;
-
-Rot = zeros(1,20);
-rotate = zeros(1,20);
-rotate_intv = zeros(1,20);
+iter_stage45_begin = iter_stage3_begin+18000;
 
 disp('Neuron Growth Stage Variable Initialization - Done!');
 disp('********************************************************************');
@@ -177,6 +172,7 @@ while iter <= end_iter
         term_change(nnT==1)=1;
 
         E = alphOverPix*atan(gamma*bsxfun(@times,term_change,1-NNtempr));
+
         E(abs(nnT)==0) = 0;
         
         if(mod(iter,png_plot_invl) == 0)
@@ -282,8 +278,8 @@ while iter <= end_iter
     term_beta = beta_t*banded_dot_star(NNpk,cm.NuNv_flip,cm.NuNv_id);
     term_source = source_coeff/sum_lap_phi*bsxfun(@times,initial_LAPpk,initial_LAPpk);
 
-    conc_t_RHS = dt_t/2*term_source-bsxfun(@times,NNct,(NNpk-NNp))+bsxfun(@times,NNp,NNct);
-    conc_t_LHS = bsxfun(@times,NNp,cm.NuNv)-dt_t/2*(term_diff-term_alph-term_beta);
+    conc_t_RHS = dtime/2*term_source-bsxfun(@times,NNct,(NNpk-NNp))+bsxfun(@times,NNp,NNct);
+    conc_t_LHS = bsxfun(@times,NNp,cm.NuNv)-dtime/2*(term_diff-term_alph-term_beta);
     bcid_t = (~nnpk);
     [conc_t_LHS, conc_t_RHS] = StiffMatSetupBCID(conc_t_LHS, conc_t_RHS,bcid_t,zeros(lenu*lenv,1));
     conc_t_new = conc_t_LHS\conc_t_RHS;
@@ -388,18 +384,48 @@ while iter <= end_iter
     end
     
     %% Growth stage operations
-    phi_plot = full(reshape(cm.NuNv*phiK,lenu,lenv));
+    phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
     % stage 2 or 4&5
     if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
-        theta_ori = growthStages2_mex(phi_plot);
+        tip = sum_filter(full(phi_plot),0);
+        regionalMaxima = imregionalmax(full(tip));
+        [Max_y,Max_x] = find(regionalMaxima);
+        size_Max = length(Max_x);
+        [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
-        theta_ori = growthStages3_mex(phi_plot);
+
+        phi_id = full(round(phi_plot));
         
+        % identification of neurons
+        L = bwconncomp(phi_id,4);
+        S = regionprops(L,'Centroid');
+        centroids = floor(cat(1,S.Centroid));
+        ID = zeros(size(phi_id));
+        dist= zeros(lenu,lenv,L.NumObjects);
+                
+        max_x = [];
+        max_y = [];
+        for k = 1:L.NumObjects
+            ID(L.PixelIdxList{k}) = k;
+            dist(:,:,k) = bwdistgeodesic(logical(bsxfun(@times,ID,phi_id)),centroids(k,2),centroids(k,1));
+            dist(isinf(dist))=0;
+            dist(isnan(dist))=0;
+
+            dist_k = reshape(dist(:,:,k),lenu*lenv,1);
+            [max_dist,max_index] = max(dist_k);
+            max_x(k) = ceil(max_index/lenu);
+            max_y(k) = rem(max_index,lenu);
+        end
+        
+        % construct energy activation zone
+        size_Max = length(max_x);
+        [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
+
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,6);
-            imagesc(theta_ori);
-            title(sprintf('Phi at iteration = %.2d',iter));
+            imagesc(sum(dist,3));
+            title(sprintf('sumDist at iteration = %.2d',iter));
             axis square;
             colorbar;
         end
