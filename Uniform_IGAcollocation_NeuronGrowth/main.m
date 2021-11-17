@@ -1,6 +1,6 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 11/16/2021
+% 11/17/2021
 
 %% CleanUp
 close all;
@@ -59,12 +59,12 @@ delta = 0.1;
 epsilonb = 0.04;
 
 % Tubulin parameters
-r = 500;
-g = 0.001;
+r = 5;
+g = 0.1;
 alpha_t = 0.001;
 beta_t = 0.001;
 Diff = 4;
-source_coeff = 0.012;
+source_coeff = 15;
 
 % tolerance for NR iterations in phi equation
 tol = 1e-4;
@@ -167,18 +167,18 @@ while iter <= end_iter
         E = alphOverPix*atan(gamma*(1-NNtempr));
     else
         nnT = reshape(theta_ori,lenu*lenv,1);
-        delta_L = r*NNct - g;
+        rMat = r*ones(lenu*lenv,1);
+        gMat = g*ones(lenu*lenv,1);
+        % adjust tip r g value
+        rMat(nnT==1) = 5000;
+        gMat(nnT==1) = 0;
+        delta_L = rMat.*NNct - gMat;
         term_change = (regular_Heiviside_fun(delta_L));
-        term_change(nnT==1)=1;
-
         E = alphOverPix*atan(gamma*bsxfun(@times,term_change,1-NNtempr));
-
-        E(abs(nnT)==0) = 0;
         
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,5);
-            phi_plot = reshape(cm.NuNv*phi,lenu,lenv);
-            imagesc(reshape(E,lenu,lenv)+phi_plot);
+            imagesc(reshape(E,lenu,lenv)+theta_ori);
             title(sprintf('E overlay with phi'));
             axis square;
             colorbar;
@@ -262,12 +262,9 @@ while iter <= end_iter
     NNp = cm.NuNv*phi;
     nnpk = round(NNpk);
 
-    if iter == 1 % save initial lap phi, this var will not change and will be used throughout the simulation
-        initial_LAPpk = lap*phi;
-        sum_lap_phi = sum(bsxfun(@times,initial_LAPpk,initial_LAPpk));
-        save(sprintf('./data/initial_LAPpk_%2d',iter),'initial_LAPpk');
-    end
-    
+    LAPpk = lap*phi;
+    sum_lap_phi = sum(bsxfun(@times,LAPpk,LAPpk));
+
     term_diff = Diff*(banded_dot_star(N1Npk,cm.N1uNv_flip,cm.N1uNv_id) + ...
         banded_dot_star(NNpk,lap_flip,lap_id) + ...
         banded_dot_star(NN1pk,cm.NuN1v_flip,cm.NuN1v_id));
@@ -276,7 +273,7 @@ while iter <= end_iter
         banded_dot_star(NN1pk,cm.NuNv_flip,cm.NuNv_id) + ...
         banded_dot_star(NNpk,cm.NuN1v_flip,cm.NuN1v_id));
     term_beta = beta_t*banded_dot_star(NNpk,cm.NuNv_flip,cm.NuNv_id);
-    term_source = source_coeff/sum_lap_phi*bsxfun(@times,initial_LAPpk,initial_LAPpk);
+    term_source = source_coeff/sum_lap_phi*bsxfun(@times,LAPpk,LAPpk);
 
     conc_t_RHS = dtime/2*term_source-bsxfun(@times,NNct,(NNpk-NNp))+bsxfun(@times,NNp,NNct);
     conc_t_LHS = bsxfun(@times,NNp,cm.NuNv)-dtime/2*(term_diff-term_alph-term_beta);
