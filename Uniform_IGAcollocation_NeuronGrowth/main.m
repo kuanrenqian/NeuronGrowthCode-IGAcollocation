@@ -174,7 +174,10 @@ while iter <= end_iter
         gMat(nnT==1) = 0;
         delta_L = rMat.*NNct - gMat;
         term_change = (regular_Heiviside_fun(delta_L));
+
         E = alphOverPix*atan(gamma*bsxfun(@times,term_change,1-NNtempr));
+
+        E(abs(nnT)==0) = 0;
         
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,5);
@@ -312,8 +315,8 @@ while iter <= end_iter
         colorbar;
         
         subplot(2,3,4);
-        imagesc(reshape(initial_LAPpk,lenu,lenv));
-        title(sprintf('initial_LAPpk at iteration = %.2d',iter));
+        imagesc(reshape(LAPpk,lenu,lenv));
+        title(sprintf('LAPpk at iteration = %.2d',iter));
         axis square;
         colorbar;
 
@@ -355,8 +358,8 @@ while iter <= end_iter
 
             sz = length(lap);
 
-            [phi,theta,conc_t,tempr,initial_LAPpk,phi_initial,theta_initial,tempr_initial,bcid] ...
-                = kqExpandDomain(sz,phiK,theta,conc_t_new,tempr_new,initial_LAPpk,oldNuNv,cm.NuNv);
+            [phi,theta,conc_t,tempr,LAPpk,phi_initial,theta_initial,tempr_initial,bcid] ...
+                = kqExpandDomain(sz,phiK,theta,conc_t_new,tempr_new,LAPpk,oldNuNv,cm.NuNv);
 
             phiK = phi;
 
@@ -405,7 +408,8 @@ while iter <= end_iter
         max_y = [];
         for k = 1:L.NumObjects
             ID(L.PixelIdxList{k}) = k;
-            dist(:,:,k) = bwdistgeodesic(logical(bsxfun(@times,ID,phi_id)),centroids(k,2),centroids(k,1));
+            id = (ID==k);
+            dist(:,:,k) = bwdistgeodesic(logical(bsxfun(@times,id,phi_id)),centroids(k,1),centroids(k,2));
             dist(isinf(dist))=0;
             dist(isnan(dist))=0;
 
