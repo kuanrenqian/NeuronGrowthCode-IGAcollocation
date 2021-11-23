@@ -1,6 +1,6 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 11/17/2021
+% 11/23/2021
 
 %% CleanUp
 close all;
@@ -176,8 +176,6 @@ while iter <= end_iter
         term_change = (regular_Heiviside_fun(delta_L));
 
         E = alphOverPix*atan(gamma*bsxfun(@times,term_change,1-NNtempr));
-
-        E(abs(nnT)==0) = 0;
         
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,5);
@@ -394,9 +392,7 @@ while iter <= end_iter
         [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
-
         phi_id = full(round(phi_plot));
-        
         % identification of neurons
         L = bwconncomp(phi_id,4);
         S = regionprops(L,'Centroid');
@@ -413,12 +409,18 @@ while iter <= end_iter
             dist(isinf(dist))=0;
             dist(isnan(dist))=0;
 
-            dist_k = reshape(dist(:,:,k),lenu*lenv,1);
-            [max_dist,max_index] = max(dist_k);
-            max_x(k) = ceil(max_index/lenu);
-            max_y(k) = rem(max_index,lenu);
+            test = reshape((dist(:,:,k)>=(0.97*max(max(dist(:,:,k))))),lenu,lenv);
+            L_test = bwconncomp(test,8);
+            S_test = regionprops(L_test,'Centroid');
+            centroids_test = floor(cat(1,S_test.Centroid));
+            
+            max_x = [max_x,centroids_test(:,1).'];
+            max_y = [max_y,centroids_test(:,2).'];
         end
         
+        % get rid of occationaly occurred exceptions in max value
+        max_x(max_x==1) = [];
+        max_y(max_y==1) = [];
         % construct energy activation zone
         size_Max = length(max_x);
         [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
@@ -430,6 +432,7 @@ while iter <= end_iter
             axis square;
             colorbar;
         end
+        
     end
 
 end
