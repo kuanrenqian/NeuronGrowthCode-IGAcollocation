@@ -1,6 +1,6 @@
 % IGA-collocation Implementation for 2D neuron growth
 % Kuanren Qian
-% 11/23/2021
+% 11/29/2021
 
 %% CleanUp
 close all;
@@ -27,6 +27,7 @@ png_plot_invl = 50;
 %% Simulation Parameter Initialization
 % time stepping variables
 dtime = 1e-2;
+iter = 0;
 end_iter = 35000;
 
 % setup domain size outside main for modularity (main.m can remain the same
@@ -77,6 +78,10 @@ seed_radius = 20;
 % Expanding domain parameters
 BC_clearance = 10;
 expd_sz = 10;
+
+mu = -2.106;
+sigma = 28.014;
+r= 0;
 
 disp(' Simulation Parameter Initialization - Done!');
 
@@ -147,7 +152,6 @@ disp('********************************************************************');
 %% Transient iteration computation
 disp('Starting Neuron Growth Model transient iterations...');
 tic;
-iter = 0;
 while iter <= end_iter
     iter = iter + 1;
     if(mod(iter,50) == 0)
@@ -179,10 +183,11 @@ while iter <= end_iter
         
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,5);
-            imagesc(reshape(E,lenu,lenv)+theta_ori);
+            imagesc(reshape(E,lenu,lenv)+phi_plot);
             title(sprintf('E overlay with phi'));
             axis square;
             colorbar;
+            drawnow;
         end
     end
 
@@ -312,12 +317,6 @@ while iter <= end_iter
         axis square;
         colorbar;
         
-        subplot(2,3,4);
-        imagesc(reshape(LAPpk,lenu,lenv));
-        title(sprintf('LAPpk at iteration = %.2d',iter));
-        axis square;
-        colorbar;
-
         % plot current iteration
         drawnow;
 
@@ -383,6 +382,7 @@ while iter <= end_iter
     
     %% Growth stage operations
     phi_plot = reshape(cm.NuNv*phiK,lenu,lenv);
+    
     % stage 2 or 4&5
     if (( iter>=iter_stage2_begin && iter < iter_stage3_begin) || (iter >=iter_stage45_begin) )
         tip = sum_filter(full(phi_plot),0);
@@ -390,51 +390,103 @@ while iter <= end_iter
         [Max_y,Max_x] = find(regionalMaxima);
         size_Max = length(Max_x);
         [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
+        
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
+        if iter == iter_stage3_begin
+            old_max_x_cell = {};
+            old_max_y_cell = {};
+        end
+
         phi_id = full(round(phi_plot));
+
         % identification of neurons
         L = bwconncomp(phi_id,4);
         S = regionprops(L,'Centroid');
         centroids = floor(cat(1,S.Centroid));
         ID = zeros(size(phi_id));
         dist= zeros(lenu,lenv,L.NumObjects);
-                
+        if iter <= iter_stage3_begin
+            old_max_x = centroids(:,1);
+            old_max_y = centroids(:,2);
+        end
+
         max_x = [];
         max_y = [];
+        cx = zeros(L.NumObjects);
+        cy = zeros(L.NumObjects);
+
         for k = 1:L.NumObjects
             ID(L.PixelIdxList{k}) = k;
             id = (ID==k);
             dist(:,:,k) = bwdistgeodesic(logical(bsxfun(@times,id,phi_id)),centroids(k,1),centroids(k,2));
             dist(isinf(dist))=0;
             dist(isnan(dist))=0;
-
-            test = reshape((dist(:,:,k)>=(0.97*max(max(dist(:,:,k))))),lenu,lenv);
-            L_test = bwconncomp(test,8);
-            S_test = regionprops(L_test,'Centroid');
-            centroids_test = floor(cat(1,S_test.Centroid));
             
-            max_x = [max_x,centroids_test(:,1).'];
-            max_y = [max_y,centroids_test(:,2).'];
+            % identification of tips
+            tip = sum_filter(bsxfun(@times,id,phi_id),1);
+            regionalMaxima = imregionalmax(full(tip));
+            L_tip = bwconncomp(regionalMaxima,4);
+            S_tip = regionprops(L_tip,'Centroid');
+            centroids_tip = floor(cat(1,S_tip.Centroid));
+
+            dist_k = reshape((dist(:,:,k)>=(0.985*max(max(dist(:,:,k))))),lenu,lenv);
+            L_geoTip = bwconncomp(dist_k,8);
+            S_geoTip = regionprops(L_geoTip,'Centroid');
+            centroids_test = floor(cat(1,S_geoTip.Centroid));
+            mx = centroids_test(:,1);
+            my = centroids_test(:,2);
+
+            if (mod(iter,50) == 0)
+                r = normrnd(mu,sigma);
+                [cx(k),cy(k)] = ashleeExpDist(centroids(k,1),centroids(k,2),mx,my,r);
+
+            end
+
+            cue= zeros(lenu,lenv,L.NumObjects);
+            for i = 1:lenu
+                for j = 1:lenv
+                    cue(i,j,k) = 1/sqrt(bsxfun(@times,(i-cx(k)),(i-cx(k)))+bsxfun(@times,(j-cy(k)),(j-cy(k))));
+                end
+            end
+
+            tips = zeros(1,L_tip.NumObjects);
+            for i = 1:L_tip.NumObjects
+                tips(i) = cue(centroids_tip(i,1),centroids_tip(i,2),k);
+            end
+            [~,tip_want_ind] = max(tips);
+
+            max_x = [max_x,centroids_tip(tip_want_ind,1).'];
+            max_y = [max_y,centroids_tip(tip_want_ind,2).'];
         end
-        
-        % get rid of occationaly occurred exceptions in max value
-        max_x(max_x==1) = [];
-        max_y(max_y==1) = [];
+
+        max_xy = [max_x;max_y];
+
+        max_x = max_xy(1,:);
+        max_y = max_xy(2,:);
         % construct energy activation zone
         size_Max = length(max_x);
         [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
 
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,6);
-            imagesc(sum(dist,3));
-            title(sprintf('sumDist at iteration = %.2d',iter));
+            imagesc(sum(dist,3)+sum(cue,3).');
+            title(sprintf('ox:%.2d,oy:%.2d,x:%.2d,y:%.2d,r:%2d',cx,cy,mx,my,r));
             axis square;
             colorbar;
+            hold on;
+            scatter(max_x,max_y,'cx');
+            hold on;
+            scatter(cx,cy,'ro');
+            hold off;
+            drawnow;
         end
-        
+
+        old_max_x_cell{end+1} = max_x;
+        old_max_y_cell{end+1} = max_y;
     end
 
 end
 
 disp('All simulations complete!\n');
+
