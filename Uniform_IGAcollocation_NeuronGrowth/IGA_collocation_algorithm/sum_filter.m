@@ -1,5 +1,4 @@
 function [phi_sum] = sum_filter(phi,method)
-%#codegen
 % THis function takes phi as input and output a phi_sum variable that has
 % maximum value at tips (0~1)
 
@@ -11,11 +10,11 @@ phi = round(phi);
 % initialize
 phi_sum = zeros(Nx,Ny);
 
+% phi = round(phi_plot);
 L = bwconncomp(phi,4);
 ID = zeros(size(phi));
 for i = 1:L.NumObjects
-    ID(L.PixelIdxList{i}) = i;  %for regular code
-%     ID(L.RegionIndices(i)) = i; %for mex
+    ID(L.PixelIdxList{i}) = i;
 end
 
 % loop through and calculate sum of phi values around i,j
@@ -47,22 +46,15 @@ phi_sum_max = max(max(phi_sum));
 phi_sum = phi_sum./phi_sum_max;
 
 if method == 1
-    phi_sum_temp = phi_sum;
-    TF = isoutlier(phi_sum_temp);
-    phi_sum_temp(TF) = 0;
-    phi_sum_temp(isnan(phi_sum_temp))=0;
-    cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.5);
-    
-%     phi_sum(isnan(phi_sum))=0;
-%     cutoff = 0.7;
+    phi_sum(isnan(phi_sum))=0;
+    cutoff = 0.7;
 elseif method == 0
     phi_sum_temp = phi_sum;
     TF = isoutlier(phi_sum_temp);
     phi_sum_temp(TF) = 0;
     phi_sum_temp(isnan(phi_sum_temp))=0;
+%     cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.98); %
     cutoff = prctile(reshape(phi_sum_temp,(Nx)^2,1),99.97);
-else
-    cutoff = 1; % dummy value for mex code (mex gives error when variable is not fully defined on all path
 end
 phi_sum(isnan(phi_sum))=0;
 phi_sum(phi_sum<cutoff)=0;

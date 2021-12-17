@@ -1,5 +1,4 @@
-function [theta] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max)
-%#codegen
+function [theta] = highlightZone(lenu,lenv,Max_x,Max_y,size_Max)
 theta = zeros(lenu,lenv);
 ttt = zeros(lenu,lenv);
 for l=1:size_Max

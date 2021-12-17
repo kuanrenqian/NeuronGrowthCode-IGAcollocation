@@ -1,6 +1,5 @@
 % IGA-collocation Implementation for 2D neuron growth
-% Kuanren Qian
-% 11/29/2021
+% 11/28/2021
 
 %% CleanUp
 close all;
@@ -81,14 +80,13 @@ expd_sz = 10;
 
 mu = -2.106;
 sigma = 28.014;
-r= 0;
 
 disp(' Simulation Parameter Initialization - Done!');
 
 %% Iterating Variable Initialization
 % constructing collocation basis
 order_deriv = 2;    % highest order of derivatives to calculate
-[cm,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
+[cm,size_collpts] = collocationDers(knotvectorU,p,knotvectorV,q,order_deriv);
 lap = cm.N2uNv + cm.NuN2v;
 [lap_flip, lap_id] = extract_diags(lap);
 
@@ -145,7 +143,6 @@ disp('********************************************************************');
 iter_stage2_begin = 500;
 iter_stage3_begin = iter_stage2_begin+10000;
 iter_stage45_begin = iter_stage3_begin+18000;
-
 disp('Neuron Growth Stage Variable Initialization - Done!');
 disp('********************************************************************');
 
@@ -161,7 +158,7 @@ while iter <= end_iter
     
     % calculating a and a*a' (aap) in the equation using theta and phi
     xtheta = cm.NuNv*theta;
-    [a, ~, aap,~,~] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
+    [a, ~, aap,~,~] = getEpsilonAndAap(epsilonb,delta,phi,xtheta,cm.L_NuNv,...
         cm.U_NuNv,cm.NuN1v,cm.N1uNv);
     
     NNtempr = cm.NuNv*tempr;
@@ -348,7 +345,7 @@ while iter <= end_iter
             lenv = length(knotvectorV)-2*(p-1);
 
             oldNuNv = cm.NuNv;
-            [cm, size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,...
+            [cm, size_collpts] = collocationDers(knotvectorU,p,knotvectorV,...
                 q,order_deriv);
             lap = cm.N2uNv + cm.NuN2v;
             [lap_flip, lap_id] = extract_diags(lap);
@@ -356,9 +353,11 @@ while iter <= end_iter
             sz = length(lap);
 
             [phi,theta,conc_t,tempr,LAPpk,phi_initial,theta_initial,tempr_initial,bcid] ...
-                = kqExpandDomain(sz,phiK,theta,conc_t_new,tempr_new,LAPpk,oldNuNv,cm.NuNv);
+                = expandDomain(sz,phiK,theta,conc_t_new,tempr_new,LAPpk,oldNuNv,cm.NuNv);
 
             phiK = phi;
+
+            [Y,X] = meshgrid(1:lenu,1:lenv); % [Y,X] matches other variables
 
             mag_grad_theta = sqrt((cm.N1uNv*theta).*(cm.N1uNv*theta)+(cm.NuN1v*theta).*(cm.NuN1v*theta));
             C0 = 0.5+6*s_coeff*mag_grad_theta;
@@ -389,84 +388,74 @@ while iter <= end_iter
         regionalMaxima = imregionalmax(full(tip));
         [Max_y,Max_x] = find(regionalMaxima);
         size_Max = length(Max_x);
-        [theta_ori] = theta_rotate(lenu,lenv,Max_x,Max_y,size_Max);
+        [theta_ori] = highlightZone(lenu,lenv,Max_x,Max_y,size_Max);
         
     % stage 3
     elseif ( iter>=iter_stage3_begin && iter < iter_stage45_begin)
-        if iter == iter_stage3_begin
-            old_max_x_cell = {};
-            old_max_y_cell = {};
-        end
-
         phi_id = full(round(phi_plot));
-
         % identification of neurons
         L = bwconncomp(phi_id,4);
         S = regionprops(L,'Centroid');
         centroids = floor(cat(1,S.Centroid));
         ID = zeros(size(phi_id));
         dist= zeros(lenu,lenv,L.NumObjects);
-        if iter <= iter_stage3_begin
-            old_max_x = centroids(:,1);
-            old_max_y = centroids(:,2);
+        if iter == iter_stage3_begin
+            [Y,X] = meshgrid(1:lenu,1:lenv); % [Y,X] matches other variables
         end
 
         max_x = [];
         max_y = [];
-        cx = zeros(L.NumObjects);
-        cy = zeros(L.NumObjects);
-
         for k = 1:L.NumObjects
+            % calculating neurite path based distance using geodesic
+            % distance transform
             ID(L.PixelIdxList{k}) = k;
             id = (ID==k);
             dist(:,:,k) = bwdistgeodesic(logical(bsxfun(@times,id,phi_id)),centroids(k,1),centroids(k,2));
             dist(isinf(dist))=0;
             dist(isnan(dist))=0;
             
-            % identification of tips
+            % identification of all tips (for later selection as axon tip) 
             tip = sum_filter(bsxfun(@times,id,phi_id),1);
             regionalMaxima = imregionalmax(full(tip));
             L_tip = bwconncomp(regionalMaxima,4);
             S_tip = regionprops(L_tip,'Centroid');
             centroids_tip = floor(cat(1,S_tip.Centroid));
 
-            dist_k = reshape((dist(:,:,k)>=(0.985*max(max(dist(:,:,k))))),lenu,lenv);
+            % identification of furthest neurite tip centroid based on dist
+            % field (no the same as tips, this is used to calculate
+            % experiments based growth angle)
+            dist_k = reshape((dist(:,:,k)>=(0.99*max(max(dist(:,:,k))))),lenu,lenv);
             L_geoTip = bwconncomp(dist_k,8);
             S_geoTip = regionprops(L_geoTip,'Centroid');
             centroids_test = floor(cat(1,S_geoTip.Centroid));
             mx = centroids_test(:,1);
             my = centroids_test(:,2);
 
+            % change growth angle every 50 iterations
             if (mod(iter,50) == 0)
-                r = normrnd(mu,sigma);
-                [cx(k),cy(k)] = ashleeExpDist(centroids(k,1),centroids(k,2),mx,my,r);
-
+                [cx(k),cy(k)] = expDist(centroids(k,1),centroids(k,2),mx,my,normrnd(mu,sigma));
             end
 
+            % calculate extracellular cue based on growth angle generated
+            % cx cy
             cue= zeros(lenu,lenv,L.NumObjects);
-            for i = 1:lenu
-                for j = 1:lenv
-                    cue(i,j,k) = 1/sqrt(bsxfun(@times,(i-cx(k)),(i-cx(k)))+bsxfun(@times,(j-cy(k)),(j-cy(k))));
-                end
-            end
+            cue(:,:,k) = 1./sqrt(bsxfun(@times,(X-cx(k)),(X-cx(k)))+bsxfun(@times,(Y-cy(k)),(Y-cy(k))));
 
+            % pick out axon tips from all tips using cue
             tips = zeros(1,L_tip.NumObjects);
             for i = 1:L_tip.NumObjects
                 tips(i) = cue(centroids_tip(i,1),centroids_tip(i,2),k);
             end
             [~,tip_want_ind] = max(tips);
 
+            % append axon tip (for multiple neuron cases)
             max_x = [max_x,centroids_tip(tip_want_ind,1).'];
             max_y = [max_y,centroids_tip(tip_want_ind,2).'];
         end
-
-        max_xy = [max_x;max_y];
-
-        max_x = max_xy(1,:);
-        max_y = max_xy(2,:);
+        
         % construct energy activation zone
         size_Max = length(max_x);
-        [theta_ori] = theta_rotate(lenu,lenv,max_x,max_y,size_Max);
+        [theta_ori] = highlightZone(lenu,lenv,max_x,max_y,size_Max);
 
         if(mod(iter,png_plot_invl) == 0)
             subplot(2,3,6);
@@ -481,9 +470,6 @@ while iter <= end_iter
             hold off;
             drawnow;
         end
-
-        old_max_x_cell{end+1} = max_x;
-        old_max_y_cell{end+1} = max_y;
     end
 
 end

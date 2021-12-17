@@ -1,4 +1,4 @@
-function [X,Y] = ashleeExpDist(old_max_x,old_max_y,max_x,max_y,r)
+function [X,Y] = expDist(old_max_x,old_max_y,max_x,max_y,r)
 
 X = [];
 Y = [];
@@ -7,7 +7,7 @@ for i = 1:min(length(old_max_x),length(max_x))
     y_diff = max_y(i)-old_max_y(i);
     growth_angle = atan2d(y_diff,x_diff);
 
-    g_diff = 10;
+    g_diff = 8;
     aa = growth_angle + r;
 
     y_increment = sind(aa)*g_diff;

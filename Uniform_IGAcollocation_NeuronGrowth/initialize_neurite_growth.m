@@ -1,4 +1,4 @@
-function [phi,conct] = initialize_neurite_growth(seed_radius,lenu,lenv,numNeuron)
+function [phi,conct,seed_x,seed_y] = initialize_neurite_growth(seed_radius,lenu,lenv,numNeuron)
 % this function is was initially written for sparse matrix. The main.m code
 % was later changed to full mat.
 seed = (seed_radius)^2;

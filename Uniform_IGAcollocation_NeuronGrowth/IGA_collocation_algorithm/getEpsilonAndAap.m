@@ -1,4 +1,4 @@
-function [epsilon, epsilon_deriv, aap, P_dy, P_dx] = kqGetEpsilonAndAap(epsilonb,delta,phi,xtheta,L_NuNv,U_NuNv,NuN1v,N1uNv)
+function [epsilon, epsilon_deriv, aap, P_dy, P_dx] = getEpsilonAndAap(epsilonb,delta,phi,xtheta,L_NuNv,U_NuNv,NuN1v,N1uNv)
 % kqGet_epsilon_and_aap(phi,theta,NuN1v,N1uNv) 
 % This function calculates epsilon and aap (a*a') based on phi, theta,
 % NuN1v, and N1uNv.

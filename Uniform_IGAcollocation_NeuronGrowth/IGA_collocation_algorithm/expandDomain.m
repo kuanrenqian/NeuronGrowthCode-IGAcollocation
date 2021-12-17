@@ -1,5 +1,5 @@
 function [phi_out,theta_out,conc_t_out,tempr_out,initial_LAPpk_out,phi_initial_out,theta_initial_out,tempr_initial_out,bcid] = ...
-    kqExpandDomain(sz,phi,theta,conc_t,tempr,initial_LAPpk,oldNuNv,newNuNv)
+    expandDomain(sz,phi,theta,conc_t,tempr,initial_LAPpk,oldNuNv,newNuNv)
 
 len = length(phi);
 M = sqrt(len);
