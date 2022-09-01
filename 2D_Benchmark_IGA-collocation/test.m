@@ -8,7 +8,7 @@ clear;
 clc;
 
 %% Including Path
-addpath('./IGA_collocation_algorithm');
+addpath('../IGA_collocation_algorithm');
 
 disp('**************************************************************************');
 disp('IGA-collocation Implementation with laplace and poisson problems');
@@ -36,8 +36,8 @@ grid_size_X = [4,8,16,32,64];
 grid_size_Y = [4,8,16,32,64];
 L2norm = zeros([5,1]);
 
-% grid_size_X = 10;
-% grid_size_Y = 10;
+grid_size_X = 10;
+grid_size_Y = 10;
 
 syms X Y;
 % pool = parpool;
@@ -59,7 +59,7 @@ for n = 1:length(grid_size_X)
     %% Constructing coef matrix (concise function version)
     order_deriv = 2;
     sprs = 1;
-    [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv, sprs);
+    [NuNv,N1uNv,NuN1v,N1uN1v,N2uNv,NuN2v,N2uN2v,coll_p,size_collpts,Control_points] = kqCollocationDers(knotvectorU,p,knotvectorV,q,order_deriv, sprs);
     lap = N2uNv + NuN2v;
 
     %% Steady state computation
@@ -81,13 +81,13 @@ for n = 1:length(grid_size_X)
             %% Laplace - sin2xsinh2y analytical solution
 %             T_analytical(i,j) = sin(2*x)*sinh(2*y);
             %% Poisson - simple analytical solution
-            T_analytical(i,j) = 2*x^2+2*y^2+x*y-x-y+1;
+%             T_analytical(i,j) = 2*x^2+2*y^2+x*y-x-y+1;
             %% Poisson - convergence paper analytical solution
-%             % https://www.researchgate.net/publication/301873952_Isogeometric_Least-Squares_Collocation_Method_with_Consistency_and_Convergence_Analysis
-%             T_analytical(i,j) = (x^2+y^2-1)*(x^2+y^2-16)*sin(x)*sin(y);
-%             f(i,j) = (3*x^4-67*x^2-67*y^2+3*y^4+6*x^2*y^2+116)*sin(x)*sin(y)...
-%                 +(68*x-8*x^3-8*x*y^2)*cos(x)*sin(y)...
-%                 +(68*y-8*y^3-8*y*x^2)*cos(y)*sin(x);
+            % https://www.researchgate.net/publication/301873952_Isogeometric_Least-Squares_Collocation_Method_with_Consistency_and_Convergence_Analysis
+            T_analytical(i,j) = (x^2+y^2-1)*(x^2+y^2-16)*sin(x)*sin(y);
+            f(i,j) = (3*x^4-67*x^2-67*y^2+3*y^4+6*x^2*y^2+116)*sin(x)*sin(y)...
+                +(68*x-8*x^3-8*x*y^2)*cos(x)*sin(y)...
+                +(68*y-8*y^3-8*y*x^2)*cos(y)*sin(x);
            %% Poisson - NIST paper analytical solution (NIST-1)
 %             % https://core.ac.uk/download/pdf/82459498.pdf
 %             T_analytical(i,j) = 2^40*x^10*(1-x)^10*y^10*(1-y)^10;
@@ -142,24 +142,24 @@ for n = 1:length(grid_size_X)
     %% Solve Laplace
 %     lap_ss = N2uNv+NuN2v;
 %     b = -lap*(T_initial);
-%     [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(lap_ss, b,bcid,T_initial);
-% 
-%     T_new = coll_Lhs\(coll_Rhs);
+%     [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,T_initial);
+
+%     T_new = laplacian_ss\(b);
 
     %% Solve Simple Poisson
-    coll_lhs = N2uNv+NuN2v;
-    source_term = 8*(NuNv*ones(size(T_initial)));
-    coll_rhs = -lap*(T_initial)+source_term;
-    [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_lhs, coll_rhs,bcid,T_initial);
+%     coll_lhs = N2uNv+NuN2v;
+%     source_term = 8*(NuNv*ones(size(T_initial)));
+%     coll_rhs = -lap*(T_initial)+source_term;
+%     [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,T_initial);
 
-    T_new = coll_Lhs\(coll_Rhs);
+%     T_new = coll_lhs\(coll_rhs);
 
     %% Solve Poisson from convergence paper
-%     coll_Lhs = -lap+NuNv;
-%     coll_Rhs = reshape(f,lenu*lenv,1)-coll_Lhs*T_initial;
-%     [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,T_initial);
-%     
-%     T_new = coll_Lhs\(coll_Rhs);
+    coll_Lhs = -lap+NuNv;
+    coll_Rhs = reshape(f,lenu*lenv,1)-coll_Lhs*T_initial;
+    [coll_Lhs, coll_Rhs] = StiffMatSetupBCID(coll_Lhs, coll_Rhs,bcid,T_initial);
+    
+    T_new = coll_Lhs\(coll_Rhs);
     
     %% Solve Poisson from NIST paper (NIST-1&4)
 %     coll_Lhs = -lap;

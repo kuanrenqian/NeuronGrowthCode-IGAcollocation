@@ -11,8 +11,8 @@ lenu = length(knotvectorU)-2*(p-1);
 lenv = length(knotvectorV)-2*(q-1);
 
 % scale knotvector to 0~1 - NURBS book convention
-% knotvectorU = knotvectorU/max(knotvectorU);
-% knotvectorV = knotvectorV/max(knotvectorV);
+knotvectorU = knotvectorU/max(knotvectorU);
+knotvectorV = knotvectorV/max(knotvectorV);
 
 k=1;
 coll_p = zeros(length(knotvectorU)-p,2);
